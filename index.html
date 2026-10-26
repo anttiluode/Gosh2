@@ -1,0 +1,1856 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ANTTI'S BRAIN — FLIES · dumbflies in the descent</title>
+<style>
+  :root{
+    --void:#04060b; --ink:#c9d4e0; --amber:#e8b13a; --amber-dim:#8a6d2c;
+    --cyan:#54d2e2; --line:#1b2436; --dim:#67788d; --green:#4ec98f; --red:#e06060;
+    --gold:#ffd76a; --mag:#e070e0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--void);overflow:hidden;
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--ink)}
+  #gl{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
+  #gl.drag{cursor:grabbing}
+  .panel{position:fixed;background:rgba(6,9,16,.74);border:1px solid var(--line);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  body.clean .panel{display:none}
+  #hud{top:14px;left:14px;padding:12px 14px;min-width:270px;font-size:11px;line-height:1.7}
+  #hud .ttl,#fl .ttl{color:var(--amber);letter-spacing:.16em;font-size:10px;
+    text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;gap:18px}
+  #hud .ttl b,#fl .ttl b{color:var(--amber-dim);font-weight:400}
+  .row{display:flex;justify-content:space-between;color:#8494a8;gap:14px}
+  .row span{color:var(--ink)}
+  .row .k{color:var(--dim)}
+  .row .room{color:var(--cyan);letter-spacing:.08em}
+  .row .lvl{color:var(--gold);letter-spacing:.12em}
+  .row .keyok{color:var(--green)}
+  .row .keyno{color:var(--gold)}
+  #resWrap{margin-top:6px}
+  #resWrap label{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;margin-bottom:3px}
+  #resWrap label span{color:var(--gold)}
+  .bar{height:4px;background:var(--line);position:relative;overflow:hidden}
+  .bar i{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,#8a6d2c,var(--gold));
+    transition:width .25s}
+  .bar.en i{background:linear-gradient(90deg,#2c6d5a,var(--green));transition:none}
+  #hud .note{margin-top:7px;border-top:1px solid var(--line);padding-top:6px;
+    color:var(--dim);font-size:10px;line-height:1.6;max-width:300px}
+  #ctl{bottom:14px;left:14px;padding:12px 14px;width:288px;font-size:11px}
+  #ctl h2,#fl h2{margin:0 0 9px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--cyan);font-weight:600}
+  .modes{display:flex;gap:6px;margin-bottom:11px}
+  .modes button{flex:1}
+  .field{margin:7px 0}
+  .field label{display:flex;justify-content:space-between;color:#8494a8;margin-bottom:3px}
+  .field label var{color:var(--ink);font-style:normal}
+  input[type=range]{width:100%;height:2px;-webkit-appearance:none;appearance:none;
+    background:var(--line);outline:none;margin:5px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;
+    border-radius:50%;background:var(--amber);cursor:pointer;border:2px solid var(--void)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;
+    background:var(--amber);cursor:pointer;border:2px solid var(--void)}
+  .btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  button{flex:1;min-width:56px;padding:7px 4px;background:transparent;color:var(--ink);
+    border:1px solid var(--line);font:inherit;font-size:10px;letter-spacing:.05em;
+    cursor:pointer;transition:.15s;text-transform:uppercase}
+  button:hover{border-color:var(--amber-dim);color:var(--amber)}
+  button.on{border-color:var(--cyan);color:var(--cyan)}
+  button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  #stat{margin-top:7px;font-size:10px;color:var(--dim);min-height:13px;word-break:break-all}
+  #fl{top:14px;right:14px;padding:12px 14px;width:322px;font-size:11px;line-height:1.6;
+    max-height:calc(100% - 28px);overflow:auto}
+  #spark{display:block;width:100%;height:34px;margin:6px 0 2px;background:rgba(0,0,0,.25)}
+  .brain{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+  .brain figure{margin:0;text-align:center}
+  .brain canvas{width:100%;aspect-ratio:1;image-rendering:pixelated;display:block;
+    border:1px solid var(--line);background:#000}
+  .brain figcaption{font-size:9px;color:var(--dim);letter-spacing:.08em;margin-top:2px}
+  #flyName{color:var(--cyan)}
+  .flags span{display:inline-block;padding:0 5px;margin-right:4px;border:1px solid var(--line);
+    font-size:9px;color:var(--dim)}
+  .flags span.eat{color:var(--green);border-color:var(--green)}
+  .flags span.mate{color:var(--mag);border-color:var(--mag)}
+  .flags span.ride{color:var(--cyan);border-color:var(--cyan)}
+  #help{bottom:14px;right:14px;padding:11px 13px;font-size:10.5px;line-height:1.85;
+    color:#73859a;text-align:right}
+  #help b{color:var(--amber)}
+  #banner{position:fixed;top:38%;left:0;right:0;text-align:center;pointer-events:none;
+    opacity:0;transition:opacity .5s;z-index:8}
+  #banner .b1{font-size:22px;letter-spacing:.4em;color:var(--gold);text-transform:uppercase;
+    text-shadow:0 0 24px rgba(255,215,106,.55)}
+  #banner .b2{font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:.14em}
+  #banner.show{opacity:1}
+  #boot{position:fixed;inset:0;display:flex;flex-direction:column;gap:10px;
+    align-items:center;justify-content:center;background:rgba(4,6,11,.92);z-index:9;
+    transition:opacity .8s;text-align:center;padding:20px}
+  #boot.gone{opacity:0;pointer-events:none}
+  #boot .big{font-size:15px;letter-spacing:.28em;color:var(--amber)}
+  #boot .sub{font-size:11px;color:var(--dim);line-height:1.9;max-width:560px}
+  #boot .sub em{color:var(--gold);font-style:normal}
+  #bootStat{font-size:11px;color:var(--cyan);letter-spacing:.12em;min-height:14px}
+  #boot.err .big{color:var(--red)}
+  #boot.err .sub{color:#c99;word-break:break-all;text-align:left}
+</style>
+
+<canvas id="gl"></canvas>
+
+<div id="boot">
+  <div class="big">ANTTI'S BRAIN — FLIES</div>
+  <div class="sub">the dumbflies have left the webcam and entered the brain.<br>
+  every fly carries its whole old mind: three 32×32 thinking fields —
+  <em>perception → memory → decision</em> — that drift, kick, decay and settle into patterns.<br>
+  each fly has a real eye. it is rendered by the same raymarcher you see through,
+  so the moons lens what the flies see, the mirrors multiply them, and they can see <em>you</em> —
+  your face is the orb you carry. they eat light and motion, they mate when their decision
+  field fills, their children inherit blended fields.<br><br>
+  the descent still runs: find the <em>gold</em> crystal, open the seal, go deeper.<br>
+  <em>F</em> picks the fly you look at · <em>R</em> rides it · <em>H</em> hides the panels.<br>
+  first launch: the GPU driver compiles the shader once, then caches it.</div>
+  <div id="bootStat">waking up…</div>
+</div>
+
+<div id="banner"><div class="b1" id="bn1"></div><div class="b2" id="bn2"></div></div>
+
+<div id="hud" class="panel">
+  <div class="ttl">Brain — Descent <b id="fps">— fps</b></div>
+  <div class="row"><span class="k">level</span><span class="lvl" id="lvlV">1</span></div>
+  <div class="row"><span class="k">room in level</span><span id="progV">—</span></div>
+  <div class="row"><span class="k">chamber</span><span class="room" id="roomV">—</span></div>
+  <div class="row"><span class="k">index / shape</span><span id="roomI">—</span></div>
+  <div class="row"><span class="k">mass · twist</span><span id="massV">—</span></div>
+  <div class="row"><span class="k">key crystal</span><span id="keyV" class="keyno">not found</span></div>
+  <div id="resWrap"><label>resonance <span id="resT">—</span></label>
+    <div class="bar" id="resBar"><i id="resFill"></i></div></div>
+  <div class="row" style="margin-top:6px"><span class="k">mode</span><span id="modeV">Boundary</span></div>
+  <div class="row"><span class="k">boundary</span><span id="src">—</span></div>
+  <div class="row"><span class="k">music</span><span id="musV">—</span></div>
+  <div class="row"><span class="k">position</span><span id="pos">—</span></div>
+  <div class="note" id="modeNote">—</div>
+</div>
+
+<div id="ctl" class="panel">
+  <h2>The descent</h2>
+  <div class="modes">
+    <button id="m0" class="on">Boundary</button>
+    <button id="m1">Projection</button>
+    <button id="m2">Cascade</button>
+    <button id="m3">Glass</button>
+  </div>
+  <div class="field"><label>Mass gain <var id="m_l">1.0</var></label>
+    <input id="m" type="range" min="0.2" max="2.2" step="0.05" value="1.0"></div>
+  <div class="field"><label>Lensing (light and flies) <var id="g_l">1.0</var></label>
+    <input id="g" type="range" min="0" max="3" step="0.05" value="1.0"></div>
+  <div class="field"><label>Music volume <var id="v_l">0.5</var></label>
+    <input id="v" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+  <div class="btns">
+    <button id="bSave">Save</button>
+    <button id="bLoad">Load</button>
+    <button id="bCode">Save code</button>
+  </div>
+  <div class="btns">
+    <button id="bMus" class="on">Music: on</button>
+    <button id="bSrc">Test pattern</button>
+  </div>
+  <div class="btns">
+    <button id="bSeed">New brain</button>
+    <button id="bIdle" class="on">Idle spin: on</button>
+  </div>
+  <div id="stat"></div>
+</div>
+
+<div id="fl" class="panel">
+  <div class="ttl">The flies <b id="flyHz">—</b></div>
+  <div class="row"><span class="k">population</span><span id="popV">—</span></div>
+  <div class="row"><span class="k">births · deaths</span><span id="bdV">—</span></div>
+  <div class="row"><span class="k">deepest lineage</span><span id="genV">—</span></div>
+  <canvas id="spark" width="292" height="34"></canvas>
+  <div class="field"><label>Max population <var id="mp_l">20</var></label>
+    <input id="mp" type="range" min="6" max="32" step="1" value="20"></div>
+  <div class="field"><label>Energy decay <var id="ed_l">0.05</var></label>
+    <input id="ed" type="range" min="0.01" max="0.2" step="0.005" value="0.05"></div>
+  <div class="field"><label>Max speed <var id="ms_l">15</var></label>
+    <input id="ms" type="range" min="5" max="25" step="0.5" value="15"></div>
+  <div class="btns">
+    <button id="bFPause">Pause flies</button>
+    <button id="bFSave">Save flies</button>
+    <button id="bFLoad">Load flies</button>
+  </div>
+  <h2 style="margin-top:12px">Fly <span id="flyName">—</span></h2>
+  <div class="row"><span class="k">age · generation</span><span id="fAge">—</span></div>
+  <div class="row"><span class="k">energy</span><span id="fEn">—</span></div>
+  <div class="bar en"><i id="fEnB"></i></div>
+  <div class="row" style="margin-top:4px"><span class="k">cone · reach</span><span id="fCone">—</span></div>
+  <div class="row"><span class="k">speed · size · shade</span><span id="fTr">—</span></div>
+  <div class="row"><span class="k">patterns P · M · D</span><span id="fPat">—</span></div>
+  <div class="flags" id="fFlags"></div>
+  <div class="brain">
+    <figure><canvas id="cEye" width="32" height="32"></canvas><figcaption>EYE</figcaption></figure>
+    <figure><canvas id="cP" width="32" height="32"></canvas><figcaption>PERCEPTION</figcaption></figure>
+    <figure><canvas id="cM" width="32" height="32"></canvas><figcaption>MEMORY</figcaption></figure>
+    <figure><canvas id="cD" width="32" height="32"></canvas><figcaption>DECISION</figcaption></figure>
+  </div>
+  <div class="btns">
+    <button id="bPick">Pick (F)</button>
+    <button id="bNext">Next fly</button>
+    <button id="bRide">Ride (R)</button>
+  </div>
+</div>
+
+<div id="help" class="panel">
+  <b>W A S D</b> move · <b>Q E</b> down/up<br>
+  drag to look (inverted) · <b>shift</b> boost<br>
+  <b>F</b> pick fly in view · <b>R</b> ride it · <b>H</b> hide panels<br>
+  gold pulse = the key · red membrane = the seal
+</div>
+
+<video id="vid" style="display:none" playsinline muted></video>
+<input id="flyFile" type="file" accept=".json,application/json" style="display:none">
+
+<script>
+'use strict';
+/* Do not hype. Do not lie. Just show. */
+const $=id=>document.getElementById(id);
+const cvs=$('gl'), boot=$('boot');
+
+function bootErr(t){
+  if(window.dreamTick){clearInterval(window.dreamTick);window.dreamTick=null;}
+  boot.classList.add('err');boot.classList.remove('gone');
+  boot.innerHTML='<div class="big">It broke — here is why</div><div class="sub">'
+    +String(t).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])).slice(0,900)+'</div>';
+}
+window.onerror=(m,s,l,c,e)=>{bootErr((e&&e.stack)||m+' @ line '+l);};
+window.addEventListener('unhandledrejection',e=>bootErr(e.reason));
+
+let gl=cvs.getContext('webgl2',{antialias:false,powerPreference:'high-performance'});
+if(!gl)gl=cvs.getContext('webgl2');
+if(!gl){bootErr('No WebGL2 — this brain needs a WebGL2 browser.');throw new Error('no webgl2');}
+
+const MAXW=15;          /* up to 5 moons x 3 live rooms */
+const MAXF=32;          /* hard cap on flies — the mirrors multiply them */
+const MAXE=8;           /* birth / death marks alive at once */
+const EYE=32, EYE_COLS=8, EYE_ROWS=MAXF/EYE_COLS;   /* 8x4 tiles of 32x32 eyes */
+const EYE_W=EYE*EYE_COLS, EYE_H=EYE*EYE_ROWS;
+
+const VERT=`#version 300 es
+void main(){vec2 p=vec2((gl_VertexID<<1)&2,gl_VertexID&2);gl_Position=vec4(p*2.0-1.0,0.0,1.0);}`;
+
+const FRAG=`#version 300 es
+precision highp float;
+out vec4 O;
+uniform vec2 iRes;
+uniform float iTime;
+uniform vec3 camP,camR,camU,camF;
+uniform int nWell,mode,keyWell;
+uniform int marchN,glassN,escN;
+uniform vec4 wells[${MAXW}];
+uniform vec3 wellCol[${MAXW}];
+uniform vec4 wellPar[${MAXW}];
+uniform vec3 roomPos[3];
+uniform vec4 roomPar[3];
+uniform vec4 roomMod[3];
+uniform vec4 roomShp[3];
+uniform vec3 roomTintU[3];
+uniform vec4 seal;
+uniform float mGain,lensK;
+uniform sampler2D camTex;
+/* ---- the flies ---- */
+uniform int nFly,eyeMode,selFly,youVis,nEv;
+uniform vec4 flyP[${MAXF}];   /* xyz pos · w body unit (world size of one dumbflies pixel-size) */
+uniform vec4 flyD[${MAXF}];   /* xyz forward · w wing phase */
+uniform vec4 flyC[${MAXF}];   /* x shade · y mating · z cone angle · w cone reach */
+uniform vec4 youP;            /* xyz · radius — you, as the flies see you */
+uniform vec4 evP[${MAXE}];    /* xyz · age 0..1 */
+uniform vec4 evK[${MAXE}];    /* x type 1 birth / 2 death */
+
+vec2 rot2(vec2 v,float a){float c=cos(a),s=sin(a);return vec2(c*v.x-s*v.y,s*v.x+c*v.y);}
+float sdSeg(vec3 p,vec3 a,vec3 b){vec3 pa=p-a,ba=b-a;
+  float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);return length(pa-ba*h);}
+float sdEll(vec3 p,vec3 r){float k0=length(p/r);float k1=length(p/(r*r));
+  return k0*(k0-1.0)/max(k1,1e-6);}
+
+float shapeSD(vec3 q,float s,float px,float pv,float hy,
+              float aa,float an,float tw){
+  float cx=pow(pow(abs(q.x)+1e-5,px)+pow(abs(q.z)+1e-5,px),1.0/px);
+  float lp=pow(pow(cx,pv)+pow(abs(q.y/hy)+1e-5,pv),1.0/pv);
+  float d=(lp-s)*min(hy,1.0);
+  if(tw>0.001){
+    float dR=length(vec2(length(q.xz)-s*0.72,q.y))-s*0.42;
+    d=mix(d,dR,tw);
+  }
+  if(aa>0.001){
+    float rr=length(q.xz);
+    float w=clamp(rr/(0.35*s),0.0,1.0);
+    d-=s*aa*w*cos(an*atan(q.z,q.x+1e-6));
+  }
+  return d/(1.0+aa*(an+1.0)*2.9);
+}
+float roomSD(vec3 p,int r){
+  vec3 q=p-roomPos[r];
+  float tw=roomMod[r].x;
+  if(abs(tw)>0.0005) q.xz=rot2(q.xz,q.y*tw);
+  float d=shapeSD(q,roomPar[r].x,roomPar[r].y,roomPar[r].z,roomPar[r].w,
+                  roomShp[r].x,roomShp[r].y,roomShp[r].z);
+  float ra=roomMod[r].y;
+  if(ra>0.001) d+=ra*sin(q.x*roomMod[r].z)*sin(q.y*roomMod[r].z)*sin(q.z*roomMod[r].z);
+  return d/(1.0+abs(tw)*roomPar[r].x*0.6+ra*roomMod[r].z);
+}
+float worldSD(vec3 p){
+  float d=min(roomSD(p,0),min(roomSD(p,1),roomSD(p,2)));
+  d=min(d,sdSeg(p,roomPos[0],roomPos[1])-1.7);
+  d=min(d,sdSeg(p,roomPos[1],roomPos[2])-1.7);
+  return d;}
+int nearestRoom(vec3 p){
+  float d0=roomSD(p,0),d1=roomSD(p,1),d2=roomSD(p,2);
+  return d0<d1?(d0<d2?0:2):(d1<d2?1:2);}
+vec3 wallNormal(vec3 p){
+  const vec2 e=vec2(0.02,-0.02);
+  return -normalize(
+    e.xyy*worldSD(p+e.xyy)+e.yyx*worldSD(p+e.yyx)+
+    e.yxy*worldSD(p+e.yxy)+e.xxx*worldSD(p+e.xxx));}
+
+float moonSD(vec3 p,int k){
+  vec3 q=p-wells[k].xyz;
+  float s=wells[k].w;
+  float bs=length(q)-s*2.2;
+  if(bs>0.6) return bs;
+  q.xz=rot2(q.xz,wellPar[k].x);
+  q.xy=rot2(q.xy,wellPar[k].y);
+  int ri=int(wellPar[k].z+0.5);
+  return shapeSD(q,s*0.62,roomPar[ri].y,roomPar[ri].z,roomPar[ri].w,
+                 roomShp[ri].x,roomShp[ri].y,roomShp[ri].z)-s*0.10;
+}
+vec3 moonNormal(vec3 p,int k){
+  const vec2 e=vec2(0.012,-0.012);
+  return normalize(
+    e.xyy*moonSD(p+e.xyy,k)+e.yyx*moonSD(p+e.yyx,k)+
+    e.yxy*moonSD(p+e.yxy,k)+e.xxx*moonSD(p+e.xxx,k));}
+
+/* ================= THE FLY BODY =================
+   dumbflies.py drew a fly as: 3 body segments along the heading
+   (centres 0, -0.4s, -0.8s; radius body_width*(1-0.3*i/3)),
+   two wings of length 1.5s flapping by sin(phase)*amp (amp 0.8 when mating, 0.5 not),
+   two 3-segment antennae curling with sin(t*2+seg)*0.1.
+   Same anatomy here, lifted to 3D: segments become ellipsoids, wings become
+   thin membranes that beat up/down, antennae become curling capsules,
+   plus two red compound eyes on the head segment. s = flyP.w (world units). */
+void flyFrame(int k,out vec3 R,out vec3 U,out vec3 F){
+  F=flyD[k].xyz;
+  vec3 up=abs(F.y)>0.97?vec3(1.0,0.0,0.0):vec3(0.0,1.0,0.0);
+  R=normalize(cross(up,F)); U=cross(F,R);
+}
+/* S = the fly's 'size' trait in world units. Segment i sits at -0.4*S*i
+   (body_length*i/3 with body_length = 1.2*size), radius ~size/1.8 tapering 10% per segment */
+float flyBody(vec3 l,float S){
+  float w=S*0.56;
+  float d=sdEll(l,                         vec3(w*1.00,w*0.92,w*1.25));   /* head + thorax */
+  d=min(d,sdEll(l-vec3(0.0,0.0,-0.4*S),    vec3(w*0.90,w*0.86,w*1.30)));
+  d=min(d,sdEll(l-vec3(0.0,-0.04*S,-0.8*S),vec3(w*0.80,w*0.74,w*1.50)));  /* abdomen */
+  return d;
+}
+float flyEyes(vec3 l,float S){
+  float w=S*0.56;
+  vec3 e=vec3(abs(l.x)-w*0.60,l.y-w*0.34,l.z-w*0.90);
+  return length(e)-w*0.42;
+}
+float flyWing(vec3 l,float S,float ph,float amp,float side){
+  float a=sin(ph)*amp;                                       /* the original flap law */
+  vec3 dir=normalize(vec3(side*cos(a),sin(a)*0.9,-0.42));
+  vec3 nrm=normalize(cross(dir,vec3(0.0,0.0,1.0)));
+  vec3 e2=cross(nrm,dir);
+  float WL=S*1.5;                                            /* wing_length = 1.5 * size */
+  vec3 root=vec3(side*S*0.22,S*0.30,-S*0.30);
+  vec3 q=l-root-dir*WL*0.5;
+  vec3 pw=vec3(dot(q,dir),dot(q,e2),dot(q,nrm));
+  return sdEll(pw,vec3(WL*0.5,WL*0.20,S*0.02));
+}
+float flyAnt(vec3 l,float S,float side,float t){
+  vec3 a=vec3(side*S*0.18,S*0.30,S*0.62);
+  float c=sin(t*2.0+side*1.3)*0.10;
+  vec3 d1=normalize(vec3(side*0.50,0.38+c,0.86));            /* pi/6 out, curling */
+  vec3 b=a+d1*S*0.9;
+  vec3 d2=normalize(d1+vec3(side*0.25,0.15-c,0.0));
+  vec3 cc=b+d2*S*0.6;
+  return min(sdSeg(l,a,b),sdSeg(l,b,cc))-S*0.035;
+}
+float flySD(vec3 p,int k,out float wingD){
+  vec3 R,U,F; flyFrame(k,R,U,F);
+  vec3 q=p-flyP[k].xyz;
+  vec3 l=vec3(dot(q,R),dot(q,U),dot(q,F));
+  float S=flyP[k].w;
+  float amp=flyC[k].y>0.5?0.8:0.5;
+  float ph=flyD[k].w;
+  wingD=min(flyWing(l,S,ph,amp,1.0),flyWing(l,S,ph,amp,-1.0));
+  float d=min(flyBody(l,S),flyEyes(l,S));
+  d=min(d,min(flyAnt(l,S,1.0,iTime+float(k)),flyAnt(l,S,-1.0,iTime+float(k))));
+  return d;
+}
+vec3 flyLocal(vec3 p,int k){
+  vec3 R,U,F; flyFrame(k,R,U,F);
+  vec3 q=p-flyP[k].xyz; return vec3(dot(q,R),dot(q,U),dot(q,F));
+}
+vec3 flyNormal(vec3 p,int k){
+  const vec2 e=vec2(0.002,-0.002); float w;
+  return normalize(
+    e.xyy*flySD(p+e.xyy,k,w)+e.yyx*flySD(p+e.yyx,k,w)+
+    e.yxy*flySD(p+e.yxy,k,w)+e.xxx*flySD(p+e.xxx,k,w));}
+
+vec3 eqSample(vec3 n){
+  float u=0.5+atan(n.z,n.x)*0.159155;
+  float v=0.5-asin(clamp(n.y,-1.0,1.0))*0.318310;
+  return texture(camTex,vec2(1.0-u,v)).rgb;}
+vec3 wallImg(vec3 p){
+  int r=nearestRoom(p);
+  return eqSample(normalize(p-roomPos[r]))*roomTintU[r];}
+/* your face, projected frontally onto the orb you carry */
+vec3 youImg(vec3 n){
+  float f=dot(n,camF);
+  vec2 uv=vec2(0.5-0.62*dot(n,camR),0.5+0.62*dot(n,camU));
+  vec3 face=texture(camTex,clamp(uv,0.0,1.0)).rgb;
+  float front=smoothstep(-0.05,0.35,f);
+  return mix(vec3(0.05,0.06,0.09),face*1.15,front);
+}
+
+void main(){
+  vec3 x,rd;
+  int eyeFid=-1;
+  float maxT=260.0;
+  vec2 uv0=vec2(0.0);
+  if(eyeMode==1){
+    /* ---- FLY EYES: one 32x32 tile per fly, same world, same lensing ---- */
+    ivec2 pix=ivec2(gl_FragCoord.xy);
+    ivec2 tl=pix/${EYE};
+    eyeFid=tl.y*${EYE_COLS}+tl.x;
+    if(eyeFid>=nFly){O=vec4(0.0,0.0,0.0,1.0);return;}
+    vec2 l=(vec2(pix-tl*${EYE})+0.5-${EYE/2}.0)/${EYE/2}.0;
+    if(dot(l,l)>1.0){O=vec4(0.0,0.0,0.0,1.0);return;}      /* outside the vision cone */
+    vec3 R,U,F; flyFrame(eyeFid,R,U,F);
+    float th=tan(flyC[eyeFid].z*0.5);
+    rd=normalize(F+(l.x*R+l.y*U)*th);
+    x=flyP[eyeFid].xyz+F*flyP[eyeFid].w*0.6;
+    maxT=flyC[eyeFid].w;                                     /* vision_cone_length */
+  }else{
+    uv0=(gl_FragCoord.xy-0.5*iRes)/iRes.y;
+    x=camP;
+    rd=normalize(uv0.x*camR+uv0.y*camU+1.5*camF);
+  }
+  vec3 glow=vec3(0.0), tint=vec3(1.0), accum=vec3(0.0), col=vec3(0.0);
+  float trav=0.0, stp=0.05;
+  int bnc=0, wingPass=0; bool done=false;
+  const int MAXB=12;
+  vec3 gA0=mix(roomPos[0],roomPos[1],0.28), gB0=mix(roomPos[0],roomPos[1],0.72);
+  vec3 gA1=mix(roomPos[1],roomPos[2],0.28), gB1=mix(roomPos[1],roomPos[2],0.72);
+
+  for(int i=0;i<marchN;i++){
+    if(lensK>0.001){
+      vec3 pull=vec3(0.0);
+      for(int k=0;k<nWell;k++){
+        vec3 dv=wells[k].xyz-x; float r2=dot(dv,dv)+0.4;
+        pull+=dv*inversesqrt(r2)*(wells[k].w*mGain/r2); }
+      rd=normalize(rd+pull*stp*0.055*lensK);
+    }
+    float dm=1e9; int hb=-1;
+    for(int k=0;k<nWell;k++){
+      float sd=moonSD(x,k);
+      float r=length(x-wells[k].xyz);
+      float e=wells[k].w*mGain/(r+1.0);
+      glow+=wellCol[k]*e*e*0.03*stp;
+      if(k==keyWell)
+        glow+=vec3(1.0,0.80,0.30)*e*e*(0.05+0.045*sin(iTime*4.0))*stp;
+      if(sd<dm){dm=sd;hb=k;} }
+    float dw=-worldSD(x);
+    {
+      float dg=min(sdSeg(x,gA0,gB0),sdSeg(x,gA1,gB1));
+      glow+=vec3(0.91,0.69,0.23)*(0.010*stp/(dg*dg+0.15))*smoothstep(4.0,1.0,dg);
+    }
+    float dsl=1e9;
+    if(seal.w>0.0){
+      dsl=length(x-seal.xyz)-seal.w;
+      glow+=vec3(0.95,0.22,0.18)*(0.012*stp/(dsl*dsl+0.22))*smoothstep(6.0,1.5,dsl);
+      if(dsl<0.04){
+        float pl=0.5+0.5*sin(iTime*3.0+x.y*2.2+x.x*1.3);
+        col=(vec3(0.72,0.10,0.09)+vec3(0.35,0.06,0.05)*pl)*tint;
+        done=true; break;
+      }
+    }
+
+    /* ---- flies: bounding sphere first, full anatomy only when close ---- */
+    float dF=1e9, dWing=1e9; int hf=-1, hw=-1;
+    for(int k=0;k<nFly;k++){
+      if(k==eyeFid) continue;                                /* a fly does not see itself */
+      vec3 q=x-flyP[k].xyz;
+      float S=flyP[k].w;
+      float r=length(q);
+      /* the bright spot dumbflies painted into every eye: white, magenta if mating */
+      vec3 bc=flyC[k].y>0.5?vec3(1.0,0.0,1.0):vec3(1.0);
+      glow+=bc*(eyeMode==1?0.0035:0.00045)*stp/(r*r+S*S*1.5);
+      if(eyeMode==0 && k==selFly){
+        float sh=r-S*3.2;
+        glow+=vec3(0.33,0.82,0.89)*0.0016*stp/(sh*sh+0.003);
+      }
+      float bs=r-S*2.6;
+      if(bs>min(dF,dWing)) continue;
+      float wd, d;
+      if(bs>0.06){ d=bs; wd=bs; }
+      else d=flySD(x,k,wd);
+      if(d<dF){dF=d;hf=k;}
+      if(wd<dWing){dWing=wd;hw=k;}
+    }
+    /* wings: translucent membranes with veins — a layer, then fly on */
+    if(dWing<0.0025 && dWing<dF && hw>=0 && wingPass<6){
+      vec3 l=flyLocal(x,hw);
+      float S=flyP[hw].w;
+      float vein=smoothstep(0.42,0.5,abs(fract(l.z/(S*0.38))-0.5))
+                +smoothstep(0.42,0.5,abs(fract(abs(l.x)/(S*0.55))-0.5));
+      glow+=tint*mix(vec3(0.92,0.95,1.0),vec3(0.42,0.40,0.38),clamp(vein,0.0,1.0)*0.7)*0.20;
+      tint*=vec3(0.80,0.83,0.86);
+      wingPass++;
+      x+=rd*max(S*0.10,0.008); trav+=0.01; stp=0.01; continue;
+    }
+    if(dF<0.0022 && hf>=0){
+      vec3 n=flyNormal(x,hf);
+      vec3 l=flyLocal(x,hf);
+      float S=flyP[hf].w, sh=flyC[hf].x;
+      vec3 base=sh*vec3(0.9,1.0,1.1);                         /* natural gray, slight iridescence */
+      if(flyC[hf].y>0.5){                                     /* mating: pulsing magenta glow */
+        float gp=sin(iTime*6.0+float(hf))*0.3+0.7;
+        base=vec3(min(1.0,sh*1.2),sh*0.8*gp,min(1.0,sh*1.1))+vec3(0.25,0.0,0.25)*gp;
+      }
+      if(flyEyes(l,S)<0.004) base=vec3(0.55,0.07,0.05);       /* compound eyes */
+      float ndv=max(dot(-rd,n),0.0);
+      float F=0.04+0.96*pow(1.0-ndv,5.0);
+      vec3 env=(mode==1)?eqSample(n):eqSample(reflect(rd,n));
+      float lit=0.35+0.65*max(dot(n,normalize(vec3(0.3,0.85,0.2))),0.0);
+      vec3 irid=0.08*vec3(sin(ndv*9.0),sin(ndv*9.0+2.1),sin(ndv*9.0+4.2));
+      col=tint*(base*lit+env*F*0.9+irid*sh);
+      done=true; break;
+    }
+    /* you: the orb you carry wears your face — this is what the flies see */
+    float dY=1e9;
+    if(youVis==1 || bnc>0 || eyeMode==1){
+      dY=length(x-youP.xyz)-youP.w;
+      if(dY<0.01){
+        vec3 n=normalize(x-youP.xyz);
+        float F=0.04+0.96*pow(1.0-max(dot(-rd,n),0.0),5.0);
+        col=tint*(youImg(n)*(1.0-F)+eqSample(reflect(rd,n))*F*0.6);
+        done=true; break;
+      }
+    }
+    /* birth rings and death dots — dumbflies' visual effects, in the volume */
+    float dE=1e9;
+    for(int k=0;k<nEv;k++){
+      vec3 q=x-evP[k].xyz; float r=length(q);
+      if(evK[k].x<1.5){
+        float rad=evP[k].w*0.45, sh=r-rad;
+        glow+=vec3(0.0,1.0,0.0)*0.004*stp*(1.0-evP[k].w)/(sh*sh+0.0015);
+      }else{
+        float d=r-0.05; dE=min(dE,d);
+      }
+    }
+    if(dE<0.003){ col=vec3(0.0); done=true; break; }
+
+    if(dm<0.03 && hb>=0){
+      vec3 n=moonNormal(x,hb);
+      vec3 radial=normalize(x-wells[hb].xyz);
+      vec3 opticN=normalize(mix(n,radial,0.75));
+      if(dot(-rd,opticN)<=0.0) opticN=n;
+      float F=0.04+0.96*pow(1.0-max(dot(-rd,opticN),0.0),5.0);
+      if(mode==1){
+        float L=0.0; for(int k=0;k<nWell;k++){
+          L+=wells[k].w*mGain/(length(x-wells[k].xyz)+1.0);}
+        col=tint*eqSample(radial)*(0.55+0.7*min(L,1.4)); done=true; break;
+      }
+      if(mode==2){
+        accum+=tint*eqSample(radial)*0.5;
+        rd=reflect(rd,opticN);
+        tint*=0.62; bnc++;
+        if(bnc>4){col=accum;done=true;break;}
+        for(int j=0;j<escN;j++){ if(moonSD(x,hb)>0.05)break; x+=n*0.05; }
+        x+=rd*0.04; trav+=0.08; stp=0.05; continue;
+      }
+      if(mode==0){
+        rd=reflect(rd,opticN);
+        tint*=0.82; bnc++;
+        if(bnc>4){col=vec3(0.0);done=true;break;}
+        for(int j=0;j<escN;j++){ if(moonSD(x,hb)>0.05)break; x+=n*0.05; }
+        x+=rd*0.04; trav+=0.08; stp=0.05; continue;
+      }
+      glow+=tint*eqSample(reflect(rd,opticN))*F*0.55;
+      bnc++; if(bnc>MAXB){col=vec3(0.0);done=true;break;}
+      const float IOR=1.45;
+      vec3 d=refract(rd,opticN,1.0/IOR);
+      if(dot(d,d)<1e-4) d=reflect(rd,opticN);
+      x-=n*0.04;
+      float chord=0.0;
+      for(int j=0;j<glassN;j++){
+        float sd=moonSD(x,hb);
+        if(sd>-0.006){
+          vec3 ne=moonNormal(x,hb);
+          vec3 radE=normalize(x-wells[hb].xyz);
+          vec3 opticNE=normalize(mix(ne,radE,0.75));
+          if(dot(d,opticNE)<=0.0) opticNE=ne;
+          vec3 ro=refract(d,-opticNE,IOR);
+          if(dot(ro,ro)<1e-4){ d=reflect(d,-opticNE); x+=d*0.03; chord+=0.03; continue; }
+          d=ro; break;
+        }
+        float st=max(-sd*0.8,0.025);
+        x+=d*st; chord+=st;
+      }
+      tint*=exp(-(vec3(1.0)-wellCol[hb])*chord*0.35)*0.96;
+      rd=d;
+      vec3 ne2=moonNormal(x,hb);
+      for(int j=0;j<escN;j++){ if(moonSD(x,hb)>0.05)break; x+=ne2*0.05; }
+      x+=rd*0.04; trav+=chord+0.08; stp=0.05; continue;
+    }
+    if(dw<0.03){
+      if(mode==0||mode==3){
+        vec3 wc=wallImg(x);
+        float L=0.0; for(int k=0;k<nWell;k++){
+          L+=wells[k].w*mGain/(length(x-wells[k].xyz)+1.0);}
+        float fog=exp(-trav*0.010);
+        col=wc*tint*(0.30+1.1*min(L,1.6))*fog; done=true; break;
+      } else {
+        vec3 n=wallNormal(x);
+        rd=reflect(rd,n); tint*=0.85; bnc++;
+        if(bnc>4){ col=(mode==2)?accum:vec3(0.0); done=true; break; }
+        for(int j=0;j<escN;j++){ if(-worldSD(x)>0.05)break; x+=n*0.05; }
+        x+=rd*0.04; stp=0.05; continue;
+      }
+    }
+    stp=clamp(min(min(min(dm,dw),dsl),dY)*0.9,0.03,3.0);
+    stp=min(stp,max(min(min(dF,dWing),dE)*0.9,0.0012));     /* thin anatomy needs small steps */
+    x+=rd*stp; trav+=stp;
+    if(trav>maxT){ if(eyeMode==1){col=vec3(0.0);done=true;} break; }
+  }
+  if(!done) col=(mode==2)?accum:vec3(0.0);
+  col+=glow;
+  col=col/(col+1.0);
+  col=pow(col,vec3(0.4545));
+  if(eyeMode==1){ O=vec4(col,1.0); return; }
+  float vig=1.0-0.35*dot(uv0,uv0);
+  O=vec4(col*vig,1.0);
+}`;
+
+/* ---------------- boundary texture (webcam + fallback) ---------------- */
+const vid=$('vid');
+let camOK=false, useCam=true;
+const camTex=gl.createTexture();
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D,camTex);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
+if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+  navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}})
+    .then(st=>{vid.srcObject=st;vid.play();camOK=true;setSrcLabel();})
+    .catch(()=>{useCam=false;camOK=false;setSrcLabel();});
+}else{useCam=false;setSrcLabel();}
+
+const pat=document.createElement('canvas');pat.width=256;pat.height=256;
+const pctx=pat.getContext('2d');
+function drawPattern(t){
+  const g=pctx.createLinearGradient(0,0,0,256);
+  g.addColorStop(0,'#2a3550');g.addColorStop(1,'#6a4a70');
+  pctx.fillStyle=g;pctx.fillRect(0,0,256,256);
+  const cx=128+64*Math.cos(0.6*t),cy=128+48*Math.sin(0.9*t);
+  for(let s=0;s<24;s++){
+    pctx.fillStyle=s%2?'#d8c890':'#705838';
+    pctx.beginPath();pctx.arc(cx,cy,46-s*1.9,0,7);pctx.fill();
+  }
+  pctx.fillStyle='#101018';pctx.fillRect(176,56,40,40);
+  pctx.fillStyle='#c9d4e0';pctx.font='14px monospace';
+  pctx.fillText('no camera — pattern',56,240);
+}
+function setSrcLabel(){
+  $('src').textContent=useCam&&camOK?'webcam live':'test pattern';
+  $('bSrc').textContent=useCam?'Test pattern':'Use camera';
+}
+function uploadBoundary(t){
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D,camTex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+  if(useCam&&camOK&&vid.readyState>=2){
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,vid);
+  }else{
+    drawPattern(t);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,pat);
+  }
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+}
+
+/* =====================================================================
+   THE PROCEDURAL BRAIN — unchanged from AnttisBrain2
+   ===================================================================== */
+let SEED=(Math.random()*4294967296)>>>0;
+function rng(i,salt){
+  let t=(SEED ^ Math.imul(i|0,2654435761) ^ Math.imul(salt|0,40503))>>>0;
+  t=Math.imul(t^(t>>>15),t|1);
+  t^=t+Math.imul(t^(t>>>7),t|61);
+  return ((t^(t>>>14))>>>0)/4294967296;
+}
+function shapeName(d){
+  if(d.tw>0.30)return 'RING';
+  if(d.aa>0.05)return (d.an>=8?'GEAR-':'STAR-')+d.an;
+  const bx=d.px>4.5, pr=d.pv>4.5;
+  if(bx&&pr)return 'CUBE';
+  if(!bx&&pr)return 'CYLINDER';
+  if(bx&&!pr)return 'CUSHION';
+  if(d.hy<0.62)return 'DOME';
+  return 'ORB';
+}
+const SYL=['KA','RA','JA','PIN','TA','VUO','LU','MI','SA','TÄH','TI','KI','VI','HEL','ME','NU','SO','LO'];
+function depthOf(L){return Math.min(3+L,10);}
+function levelStartOf(L){let s=0;for(let k=1;k<L;k++)s+=depthOf(k);return s;}
+function levelOfRoom(i){
+  if(i<0)return 1;
+  let L=1,s=0;
+  while(s+depthOf(L)<=i){s+=depthOf(L);L++;}
+  return L;
+}
+function rngL(L,salt){return rng(0x5EED+Math.imul(L,131),7000+salt);}
+function keyRoomOf(L){const d=depthOf(L);
+  return levelStartOf(L)+1+Math.floor(rngL(L,1)*(d-1));}
+function exitRoomOf(L){return levelStartOf(L)+depthOf(L)-1;}
+function nMoonsOf(L){return Math.min(3+((L-1)>>1),5);}
+
+function roomDef(i){
+  const L=levelOfRoom(i);
+  const spread=Math.min(1.2+L*0.8,6.0);
+  const px=2.0+rng(i,1)*spread;
+  const pv=2.0+rng(i,4)*spread;
+  const size=7.0+rng(i,2)*4.0+Math.min(L*0.15,3.0);
+  const height=4.5+rng(i,3)*2.5;
+  const hy=Math.min(Math.max(height/size,0.45),1.0);
+  const an=4+Math.floor(rng(i,13)*9);
+  let aa=L>=2?rng(i,12)*rng(i,12)*Math.min(0.02+L*0.013,0.12):0.0;
+  aa=Math.min(aa,0.5/an);
+  let tw=L>=4?Math.pow(rng(i,14),1.5)*Math.min((L-3)*0.10,0.55):0.0;
+  const hue=rng(i,5);
+  const turn=(rng(i,6)-0.5)*2.4;
+  let twist=(rng(i,8)-0.5)*2.0*Math.min(0.015+L*0.011,0.13);
+  let ripA=Math.min(Math.max(L-2,0)*0.06,0.45)*rng(i,9);
+  const ripF=0.5+rng(i,10)*1.2;
+  const cDepth=()=>((-(size*hy)*(1-tw)+size*0.30*tw)
+        /(1.0+aa*(an+1.0)*2.9)
+        /(1.0+Math.abs(twist)*size*0.6+ripA*ripF));
+  for(let g=0;g<10 && cDepth()>-1.3;g++){
+    tw*=0.7; aa*=0.7;
+    if(g>2){twist*=0.75; ripA*=0.75;}
+  }
+  const massK=Math.min(0.7+rng(i,11)*0.9+L*0.04,2.8);
+  let name='';const nc=2+Math.floor(rng(i,7)*2);
+  for(let k=0;k<nc;k++)name+=SYL[Math.floor(rng(i,20+k)*SYL.length)];
+  const tint=[0.86+0.14*Math.cos(6.283*hue),
+              0.86+0.14*Math.cos(6.283*(hue+0.33)),
+              0.86+0.14*Math.cos(6.283*(hue+0.66))];
+  return {px,pv,hy,aa,an,tw,size,height,hue,turn,name,tint,twist,ripA,ripF,massK,level:L};
+}
+function moonDef(i,m){
+  const s=100+m*13;
+  const mass=-Math.log(1e-6+rng(i,s+1));
+  return {mass,
+    fx:0.05+rng(i,s+2)*0.20, fy:0.05+rng(i,s+3)*0.20, fz:0.05+rng(i,s+4)*0.20,
+    px:rng(i,s+5)*6.283, py:rng(i,s+6)*6.283, pz:rng(i,s+7)*6.283,
+    ax:0.28+rng(i,s+8)*0.22, ay:0.25+rng(i,s+9)*0.22, az:0.28+rng(i,s+10)*0.22,
+    ra:(rng(i,s+11)-0.5)*1.2, rb:(rng(i,s+12)-0.5)*1.2,
+    pa:rng(i,s+13)*6.283, pb:rng(i,s+14)*6.283,
+    hue:rng(i,s+15)};
+}
+
+let LEVEL=1, keyFound=false, maxReached=1;
+let CI=0, dirIn=[Math.sin(rng(0,99)*6.283),Math.cos(rng(0,99)*6.283)];
+let R={};
+function rotXZ(v,a){const c=Math.cos(a),s=Math.sin(a);return [c*v[0]-s*v[1],s*v[0]+c*v[1]];}
+function computeDirIn(N){
+  let d=[Math.sin(rng(0,99)*6.283),Math.cos(rng(0,99)*6.283)];
+  if(N>0){for(let j=0;j<N;j++)d=rotXZ(d,roomDef(j).turn);}
+  else if(N<0){for(let j=-1;j>=N;j--)d=rotXZ(d,-roomDef(j).turn);}
+  return d;
+}
+function rebuildChain(){
+  const dPrev=roomDef(CI-1), dCur=roomDef(CI), dNext=roomDef(CI+1);
+  const dirOut=rotXZ(dirIn,dCur.turn);
+  const Dn=dCur.size+dNext.size+12.0, Dp=dPrev.size+dCur.size+12.0;
+  R={
+    idx:[CI-1,CI,CI+1],
+    def:[dPrev,dCur,dNext],
+    pos:[[-dirIn[0]*Dp,0,-dirIn[1]*Dp],[0,0,0],[dirOut[0]*Dn,0,dirOut[1]*Dn]],
+    dirOut
+  };
+  $('roomV').textContent=dCur.name;
+  $('roomI').textContent='#'+CI+' · '+shapeName(dCur)
+    +' · p'+dCur.px.toFixed(1)+'/'+dCur.pv.toFixed(1)
+    +(dCur.tw>0.01?' · ring '+dCur.tw.toFixed(2):'');
+  $('massV').textContent=dCur.massK.toFixed(2)+' · '+(dCur.twist>=0?'+':'')+dCur.twist.toFixed(3);
+  updateLevelHud();
+}
+function banner(a,b){
+  $('bn1').textContent=a;$('bn2').textContent=b||'';
+  const el=$('banner');el.classList.add('show');
+  clearTimeout(banner.t);banner.t=setTimeout(()=>el.classList.remove('show'),2600);
+}
+function updateLevelHud(){
+  $('lvlV').textContent=LEVEL;
+  const rIn=CI-levelStartOf(LEVEL);
+  $('progV').textContent=(CI<0?'—':(rIn+1)+' / '+depthOf(LEVEL));
+  $('keyV').textContent=keyFound?'found — seal open':'not found';
+  $('keyV').className=keyFound?'keyok':'keyno';
+}
+function onRoomChanged(){
+  const newL=levelOfRoom(CI);
+  if(newL>LEVEL){
+    LEVEL=newL;
+    keyFound=(LEVEL+1<=maxReached);
+    if(LEVEL>maxReached){maxReached=LEVEL;keyFound=false;
+      banner('LEVEL '+LEVEL,depthOf(LEVEL)+' rooms · find the gold crystal');
+      autoSave();}
+  }else if(newL<LEVEL){
+    LEVEL=newL;
+    keyFound=(LEVEL+1<=maxReached);
+  }
+  updateLevelHud();
+}
+/* the chain re-centres on every gate crossing: everything that lives in world
+   coordinates (you, the flies, their marks) shifts with it */
+function shiftWorld(shift){
+  camP=[camP[0]-shift[0],camP[1]-shift[1],camP[2]-shift[2]];
+  for(const f of flies){
+    f.x-=shift[0];f.y-=shift[1];f.z-=shift[2];
+    f.px-=shift[0];f.py-=shift[1];f.pz-=shift[2];
+  }
+  for(const e of effects){e.x-=shift[0];e.y-=shift[1];e.z-=shift[2];}
+}
+function advance(){
+  const shift=R.pos[2];
+  shiftWorld(shift);
+  dirIn=R.dirOut; CI++; rebuildChain(); onRoomChanged(); rehomeFlies();
+}
+function retreat(){
+  const shift=R.pos[0];
+  shiftWorld(shift);
+  const dPrev=roomDef(CI-1);
+  dirIn=rotXZ(dirIn,-dPrev.turn); CI--; rebuildChain(); onRoomChanged(); rehomeFlies();
+}
+
+/* ---------------- JS twins of the SDFs (collision + transitions) ---------- */
+function sdSegJ(px,py,pz,a,b){
+  const bax=b[0]-a[0],bay=b[1]-a[1],baz=b[2]-a[2];
+  const pax=px-a[0],pay=py-a[1],paz=pz-a[2];
+  const h=Math.min(Math.max((pax*bax+pay*bay+paz*baz)/(bax*bax+bay*bay+baz*baz),0),1);
+  return Math.hypot(pax-bax*h,pay-bay*h,paz-baz*h);}
+function shapeSDJ(x,y,z,d){
+  const s=d.size;
+  const cx=Math.pow(Math.pow(Math.abs(x)+1e-5,d.px)+Math.pow(Math.abs(z)+1e-5,d.px),1/d.px);
+  const lp=Math.pow(Math.pow(cx,d.pv)+Math.pow(Math.abs(y/d.hy)+1e-5,d.pv),1/d.pv);
+  let sd=(lp-s)*Math.min(d.hy,1.0);
+  if(d.tw>0.001){
+    const dR=Math.hypot(Math.hypot(x,z)-s*0.72,y)-s*0.42;
+    sd=sd+(dR-sd)*d.tw;
+  }
+  if(d.aa>0.001){
+    const rr=Math.hypot(x,z);
+    const w=Math.min(Math.max(rr/(0.35*s),0),1);
+    sd-=s*d.aa*w*Math.cos(d.an*Math.atan2(z,x+1e-6));
+  }
+  return sd/(1.0+d.aa*(d.an+1.0)*2.9);
+}
+function roomSDJ(px,py,pz,r){
+  const d=R.def[r],c=R.pos[r];
+  let x=px-c[0],y=py-c[1],z=pz-c[2];
+  if(Math.abs(d.twist)>0.0005){
+    const ca=Math.cos(y*d.twist),sa=Math.sin(y*d.twist);
+    const nx=ca*x-sa*z, nz=sa*x+ca*z; x=nx; z=nz;
+  }
+  let sd=shapeSDJ(x,y,z,d);
+  if(d.ripA>0.001)
+    sd+=d.ripA*Math.sin(x*d.ripF)*Math.sin(y*d.ripF)*Math.sin(z*d.ripF);
+  return sd/(1.0+Math.abs(d.twist)*d.size*0.6+d.ripA*d.ripF);
+}
+function worldSDJ(px,py,pz){
+  let d=Math.min(roomSDJ(px,py,pz,0),Math.min(roomSDJ(px,py,pz,1),roomSDJ(px,py,pz,2)));
+  d=Math.min(d,sdSegJ(px,py,pz,R.pos[0],R.pos[1])-1.7);
+  d=Math.min(d,sdSegJ(px,py,pz,R.pos[1],R.pos[2])-1.7);
+  return d;}
+
+/* ---------------- moons + key + seal upload ---------------- */
+let P={mGain:1.0,lensK:1.0},mode=0,idle=1;
+const wellsF=new Float32Array(MAXW*4), colsF=new Float32Array(MAXW*3),
+      parF=new Float32Array(MAXW*4),
+      roomPosF=new Float32Array(9), roomParF=new Float32Array(12),
+      roomModF=new Float32Array(12), roomShpF=new Float32Array(12),
+      roomTintF=new Float32Array(9);
+function moonCol(h){
+  return[0.55+0.45*Math.cos(6.283*h),0.55+0.45*Math.cos(6.283*(h+0.33)),0.55+0.45*Math.cos(6.283*(h+0.66))];}
+let keyWell=-1, keyPos=null, keyR=0, nWellLive=0;
+let sealV=[0,0,0,-1];
+function packWorld(t){
+  let w=0; keyWell=-1; keyPos=null;
+  const nM=nMoonsOf(LEVEL), kRoom=keyRoomOf(LEVEL);
+  for(let r=0;r<3;r++){
+    const d=R.def[r],c=R.pos[r];
+    roomPosF[r*3]=c[0];roomPosF[r*3+1]=c[1];roomPosF[r*3+2]=c[2];
+    roomParF[r*4]=d.size;roomParF[r*4+1]=d.px;roomParF[r*4+2]=d.pv;roomParF[r*4+3]=d.hy;
+    roomModF[r*4]=d.twist;roomModF[r*4+1]=d.ripA;roomModF[r*4+2]=d.ripF;roomModF[r*4+3]=d.massK;
+    roomShpF[r*4]=d.aa;roomShpF[r*4+1]=d.an;roomShpF[r*4+2]=d.tw;roomShpF[r*4+3]=0;
+    roomTintF[r*3]=d.tint[0];roomTintF[r*3+1]=d.tint[1];roomTintF[r*3+2]=d.tint[2];
+    const A=d.size*0.62, Ay=d.height*0.55;
+    for(let m=0;m<nM && w<MAXW;m++,w++){
+      const md=moonDef(R.idx[r],m);
+      const isKey=(!keyFound && R.idx[r]===kRoom && m===0);
+      let size=(0.45+(md.mass/3.0)*0.75)*P.mGain*d.massK;
+      size=Math.min(size,1.6); if(isKey)size=Math.min(size*1.25,1.8);
+      const ax=isKey?Math.min(md.ax*1.6,0.55):md.ax,
+            ay=isKey?Math.min(md.ay*1.5,0.50):md.ay,
+            az=isKey?Math.min(md.az*1.6,0.55):md.az;
+      wellsF[w*4+0]=c[0]+A*ax*Math.sin(md.fx*t+md.px);
+      wellsF[w*4+1]=c[1]+Ay*ay*Math.sin(md.fy*t+md.py);
+      wellsF[w*4+2]=c[2]+A*az*Math.sin(md.fz*t+md.pz);
+      wellsF[w*4+3]=size;
+      const cc=isKey?[1.0,0.84,0.36]:moonCol(md.hue);
+      colsF[w*3]=cc[0];colsF[w*3+1]=cc[1];colsF[w*3+2]=cc[2];
+      parF[w*4]=md.ra*t+md.pa;parF[w*4+1]=md.rb*t+md.pb;parF[w*4+2]=r;parF[w*4+3]=0;
+      if(isKey){keyWell=w;keyPos=[wellsF[w*4],wellsF[w*4+1],wellsF[w*4+2]];keyR=size;}
+    }
+  }
+  const eRoom=exitRoomOf(LEVEL);
+  if(!keyFound && CI===eRoom){
+    sealV=[(R.pos[1][0]+R.pos[2][0])*0.5,(R.pos[1][1]+R.pos[2][1])*0.5,
+           (R.pos[1][2]+R.pos[2][2])*0.5,2.6];
+  }else sealV=[0,0,0,-1];
+  nWellLive=w;
+  return w;
+}
+
+/* =====================================================================
+   THE FLIES — dumbflies.py, ported whole.
+   Nothing in the mind is simplified: three 32x32 ThinkingFields with the
+   original thresholds (0.6 / 0.5 / 0.55), drift 0.01 toward 0.5, gaussian
+   'quantum kicks' (sd 0.05, blurred sigma=1, scipy 'reflect' edges),
+   decay 0.01, clip [0,1]; pattern detection; 3x3 +0.02 association;
+   centroid decisions; eating (density > 0.1) from brightness*2 + motion*10
+   capped at 5; mating (density > 0.2), 1-in-100 chance, cost 40 each,
+   cooldown 100, children blend all three fields and inherit mutated traits;
+   repulsion; hover; random direction changes; momentum 0.5.
+   What changed is the body and the eye, because the world is now 3D:
+   see README 'what changed and why'.
+   ===================================================================== */
+const CFG={
+  vision_cone_angle:Math.PI/3, vision_cone_length:150, max_speed:15.0, turn_speed:0.2,
+  momentum:0.5, random_movement:0.2, hover_amplitude:2.0,
+  initial_population:12, max_population:20, min_population:5,
+  energy_decay:0.05, mating_threshold:80.0, initial_energy:100.0, reproduction_cost:40.0,
+  repulsion_distance:30.0, repulsion_force:2.0, bug_detection_range:100.0,
+  birth_marker_duration:30, death_marker_duration:50, mutation_rate:0.05
+};
+/* one dumbflies pixel, in brain-world units. A room is ~18 units across,
+   the old webcam frame was 1280 px across. */
+const SPEED=0.014;       /* px/frame of speed -> world units/tick (crosses a room in ~3 s, as before) */
+const SPACE=0.03;        /* px of repulsion / detection / hover -> world units */
+const BODY=0.06;         /* px of body size -> world units (flies drawn ~4x larger than space, to be seen) */
+const REACH=0.06;        /* px of vision_cone_length -> world units of sight */
+const FLY_LENS=8.0;      /* flies bend through the moon field by the light law, at this gain */
+const TICK=1/30;         /* dumbflies ran at ~30 fps; the minds tick at 30 Hz here */
+
+/* ---- randomness: gaussian kicks need a lot of normals ---- */
+let gSpare=null;
+function randn(){
+  if(gSpare!==null){const s=gSpare;gSpare=null;return s;}
+  let u=0,v=0;while(u===0)u=Math.random();v=Math.random();
+  const r=Math.sqrt(-2*Math.log(u)), th=2*Math.PI*v;
+  gSpare=r*Math.sin(th); return r*Math.cos(th);
+}
+/* scipy.ndimage.gaussian_filter(sigma=1): truncate 4.0 -> radius 4, mode 'reflect' */
+const GK=(()=>{const k=[];let s=0;for(let i=-4;i<=4;i++){const w=Math.exp(-i*i/2);k.push(w);s+=w;}
+  return k.map(w=>w/s);})();
+const FS=32, FN=FS*FS;
+function reflectIdx(i){ if(i<0)return -i-1; if(i>=FS)return 2*FS-i-1; return i; }
+const _noise=new Float32Array(FN), _tmp=new Float32Array(FN);
+function blurredNoise(scale){
+  for(let i=0;i<FN;i++)_noise[i]=randn()*scale;
+  for(let r=0;r<FS;r++)for(let c=0;c<FS;c++){let s=0;
+    for(let k=-4;k<=4;k++)s+=GK[k+4]*_noise[r*FS+reflectIdx(c+k)]; _tmp[r*FS+c]=s;}
+  for(let r=0;r<FS;r++)for(let c=0;c<FS;c++){let s=0;
+    for(let k=-4;k<=4;k++)s+=GK[k+4]*_tmp[reflectIdx(r+k)*FS+c]; _noise[r*FS+c]=s;}
+  return _noise;
+}
+
+class ThinkingField{
+  constructor(threshold){
+    this.th=threshold; this.decay=0.01;
+    this.f=new Float32Array(FN);
+    for(let i=0;i<FN;i++)this.f[i]=Math.random()*0.1;      /* start with low energy */
+    this.patterns=[];
+  }
+  applyInput(img){                                          /* img: 32x32 gray 0..255 */
+    let mn=1e9,mx=-1e9;
+    for(let i=0;i<FN;i++){const v=img[i];if(v<mn)mn=v;if(v>mx)mx=v;}
+    const den=(mx-mn)+1e-7;
+    for(let i=0;i<FN;i++)this.f[i]+=((img[i]-mn)/den)*0.1;
+  }
+  evolve(drift=0.01,kick=0.05){
+    const f=this.f, nz=blurredNoise(kick), keep=1-this.decay;
+    for(let i=0;i<FN;i++){
+      let v=f[i]+drift*(0.5-f[i]);
+      v+=nz[i]; v*=keep;
+      f[i]=v<0?0:(v>1?1:v);
+    }
+  }
+  detect(){
+    const p=this.patterns; p.length=0;
+    for(let i=0;i<FN;i++)if(this.f[i]>this.th)p.push(i);
+    return p;
+  }
+  decide(){
+    const p=this.patterns;
+    if(!p.length)return [0,0,false,false];
+    let si=0,sj=0;
+    for(const k of p){si+=(k/FS)|0;sj+=k%FS;}
+    const ai=si/p.length, aj=sj/p.length;
+    const dx=(aj-FS/2)/(FS/2), dy=(ai-FS/2)/(FS/2);
+    const density=p.length/FN;
+    return [dx,dy,density>0.1,density>0.2];
+  }
+  associate(src){
+    const f=this.f;
+    for(const k of src){
+      const i=(k/FS)|0, j=k%FS;
+      for(let di=-1;di<=1;di++)for(let dj=-1;dj<=1;dj++){
+        const ni=i+di, nj=j+dj;
+        if(ni>=0&&ni<FS&&nj>=0&&nj<FS)f[ni*FS+nj]+=0.02;
+      }
+    }
+    for(let i=0;i<FN;i++){const v=f[i];f[i]=v<0?0:(v>1?1:v);}
+  }
+  blend(o){const b=new Float32Array(FN);for(let i=0;i<FN;i++)b[i]=(this.f[i]+o.f[i])/2;return b;}
+}
+
+let flyIdSeq=1;
+const FLY_SYL=['su','ri','ka','pö','lu','vi','hu','ne','mo','tä','ki','sa','ru','pi'];
+function flyName(id){let s='',n=id*2654435761>>>0;for(let k=0;k<2;k++){s+=FLY_SYL[n%FLY_SYL.length];n=(n/FLY_SYL.length)|0;}
+  return s.toUpperCase()+'-'+id;}
+
+class Fly{
+  constructor(x,y,z,traits){
+    this.id=flyIdSeq++; this.name=flyName(this.id);
+    this.x=x;this.y=y;this.z=z; this.px=x;this.py=y;this.pz=z;
+    this.yaw=Math.random()*6.283; this.pitch=(Math.random()-0.5)*0.6;
+    this.perception=new ThinkingField(0.6);
+    this.memory=new ThinkingField(0.5);
+    this.decision=new ThinkingField(0.55);
+    this.energy=CFG.initial_energy; this.age=0; this.cooldown=0; this.isMating=false; this.isEating=false;
+    this.vel=0; this.rot=0; this.rotP=0;
+    this.hoverOffset=Math.random()*6.283; this.hoverTime=0;
+    this.randomDir=Math.random()*2-1; this.randomDirP=Math.random()*2-1; this.lastDirChange=0;
+    this.wingOff=Math.random()*6.283;
+    this.gen=1;
+    this.traits=traits||{
+      vision_cone_angle:CFG.vision_cone_angle,
+      vision_cone_length:CFG.vision_cone_length,
+      max_speed:CFG.max_speed,
+      turn_speed:CFG.turn_speed,
+      size:3.0+Math.random()*3.0,
+      shade:0.2+Math.random()*0.6
+    };
+    this.prevEye=null;                          /* deque(maxlen=10): only [-1] was ever read */
+    this.eye=new Float32Array(FN);
+    this.hasEye=false;
+  }
+  inheritTraits(parent,rate){
+    const t=Object.assign({},parent);
+    for(const k in t){
+      if(Math.random()<rate){
+        if(k==='size'){t[k]=Math.min(Math.max(t[k]+randn()*0.2,2.0),10.0);}
+        else if(k==='shade'){t[k]=Math.min(Math.max(t[k]+randn()*0.05,0.0),1.0);}
+        else{
+          t[k]+=randn()*0.05*t[k];
+          if(k==='vision_cone_angle')t[k]=Math.min(Math.max(t[k],Math.PI/6),Math.PI/2);
+          else if(k==='vision_cone_length')t[k]=Math.round(Math.min(Math.max(t[k],100),200));
+          else if(k==='max_speed')t[k]=Math.min(Math.max(t[k],5.0),25.0);
+          else if(k==='turn_speed')t[k]=Math.min(Math.max(t[k],0.1),0.5);
+        }
+      }
+    }
+    this.traits=t;
+  }
+  fwd(){const cp=Math.cos(this.pitch);return [Math.sin(this.yaw)*cp,Math.sin(this.pitch),Math.cos(this.yaw)*cp];}
+  /* process_frame: perception -> memory -> decision, exactly as written */
+  think(){
+    const eye=this.eye;
+    this.perception.applyInput(eye);
+    this.perception.evolve();
+    const pp=this.perception.detect();
+    this.memory.associate(pp);
+    this.memory.evolve();
+    const mp=this.memory.detect();
+    this.decision.associate(mp);
+    this.decision.evolve();
+    this.decision.detect();
+    const [dx,dy,eat,mate]=this.decision.decide();
+    const velocity=Math.sqrt(dx*dx+dy*dy);
+    /* the decision centroid is a point in the eye; its offset from the eye's
+       centre is the turn the fly wants (yaw right for +x, pitch down for +y) */
+    const half=this.traits.vision_cone_angle*0.5;
+    const rotY=dx*half, rotP=-dy*half;
+    this.isMating=mate; this.isEating=eat;
+    this.updateEnergy(eye,eat);
+    const m=CFG.momentum;
+    this.vel=this.vel*m+velocity*this.traits.max_speed*(1-m);
+    this.rot=this.rot*m+rotY*CFG.turn_speed*(1-m);
+    this.rotP=this.rotP*m+rotP*CFG.turn_speed*(1-m);
+  }
+  updateEnergy(eye,wantEat){
+    this.energy-=CFG.energy_decay;
+    if(wantEat){
+      let s=0;for(let i=0;i<FN;i++)s+=eye[i];
+      const brightness=s/FN/255;
+      let motion=0;
+      if(this.prevEye){let d=0;for(let i=0;i<FN;i++)d+=Math.abs(eye[i]-this.prevEye[i]);motion=d/FN/255;}
+      this.energy+=Math.min(brightness*2.0+motion*10.0,5.0);
+    }
+    if(!this.prevEye)this.prevEye=new Float32Array(FN);
+    this.prevEye.set(eye);
+    this.energy=Math.min(this.energy,CFG.initial_energy*1.5);
+  }
+  repulsion(near){
+    let rx=0,ry=0,rz=0; const RD=CFG.repulsion_distance*SPACE;
+    for(const o of near){
+      const dx=this.x-o.x,dy=this.y-o.y,dz=this.z-o.z;
+      const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+      if(d<RD&&d>0){const s=(1-d/RD)*CFG.repulsion_force*SPACE;rx+=dx/d*s;ry+=dy/d*s;rz+=dz/d*s;}
+    }
+    return [rx,ry,rz];
+  }
+}
+
+let flies=[], effects=[];
+let births=0, deaths=0, deepestGen=1, fliesPaused=false;
+const popHist=[];
+
+function insideVal(px,py,pz){
+  let v=-worldSDJ(px,py,pz);
+  if(sealV[3]>0)
+    v=Math.min(v,Math.hypot(px-sealV[0],py-sealV[1],pz-sealV[2])-sealV[3]);
+  return v;
+}
+function wallGrad(x,y,z){
+  const e=0.05;
+  const gx=insideVal(x+e,y,z)-insideVal(x-e,y,z),
+        gy=insideVal(x,y+e,z)-insideVal(x,y-e,z),
+        gz=insideVal(x,y,z+e)-insideVal(x,y,z-e);
+  const n=Math.hypot(gx,gy,gz)||1; return [gx/n,gy/n,gz/n];   /* points inward */
+}
+function randomPointInRoom(r){
+  const d=R.def[r],c=R.pos[r];
+  for(let a=0;a<40;a++){
+    const x=c[0]+(Math.random()*2-1)*d.size*0.55,
+          y=c[1]+(Math.random()*2-1)*d.size*d.hy*0.45,
+          z=c[2]+(Math.random()*2-1)*d.size*0.55;
+    if(insideVal(x,y,z)>0.8)return [x,y,z];
+  }
+  return [c[0],c[1],c[2]];
+}
+function spawnFly(at,traits){
+  const p=at||randomPointInRoom(1);
+  const f=new Fly(p[0],p[1],p[2],traits);
+  flies.push(f); return f;
+}
+function initFlies(){
+  flies=[];effects=[];births=0;deaths=0;deepestGen=1;popHist.length=0;
+  for(let i=0;i<CFG.initial_population;i++)spawnFly();
+  selId=flies.length?flies[0].id:-1;
+}
+/* flies left in a room that has fallen out of the live chain follow you
+   through the gate: they are re-placed in the room behind you */
+function rehomeFlies(){
+  for(const f of flies){
+    if(insideVal(f.x,f.y,f.z)<0.3){
+      const p=randomPointInRoom(Math.random()<0.5?0:1);
+      f.x=f.px=p[0];f.y=f.py=p[1];f.z=f.pz=p[2];
+    }
+  }
+  effects=effects.filter(e=>insideVal(e.x,e.y,e.z)>-0.5);
+}
+function addEffect(x,y,z,type){
+  effects.push({x,y,z,type,age:0,dur:type===1?CFG.birth_marker_duration:CFG.death_marker_duration});
+  if(effects.length>MAXE)effects.shift();
+}
+
+/* try_mate — including the original's ways: a 1-in-100 chance, the child is
+   born at the midpoint, and inherit_traits is called with BOTH parents in turn,
+   so the second call wins (the child carries the mutated traits of the partner).
+   Kept as written. The three fields are the true blend of both parents. */
+function tryMate(a,b){
+  if(!(a.isMating&&b.isMating&&a.energy>CFG.mating_threshold&&b.energy>CFG.mating_threshold
+       &&a.cooldown===0&&b.cooldown===0))return null;
+  if(Math.floor(Math.random()*100)!==0)return null;
+  let cx=(a.x+b.x)/2,cy=(a.y+b.y)/2,cz=(a.z+b.z)/2;
+  if(insideVal(cx,cy,cz)<0.3){cx=a.x;cy=a.y;cz=a.z;}
+  const child=new Fly(cx,cy,cz,{});
+  child.inheritTraits(a.traits,CFG.mutation_rate);
+  child.inheritTraits(b.traits,CFG.mutation_rate);
+  child.perception.f=a.perception.blend(b.perception);
+  child.memory.f=a.memory.blend(b.memory);
+  child.decision.f=a.decision.blend(b.decision);
+  child.gen=Math.max(a.gen,b.gen)+1;
+  a.energy-=CFG.reproduction_cost; b.energy-=CFG.reproduction_cost;
+  a.cooldown=100; b.cooldown=100;
+  return child;
+}
+
+/* move one fly: update_position, in 3D */
+function moveFly(f,near){
+  f.px=f.x;f.py=f.y;f.pz=f.z;
+  const [rx,ry,rz]=f.repulsion(near);
+  f.hoverTime+=0.1;
+  const hover=Math.sin(f.hoverTime+f.hoverOffset)*CFG.hover_amplitude*SPACE;
+  if(f.age-f.lastDirChange>20 && Math.random()<CFG.random_movement){
+    f.randomDir=Math.random()*2-1; f.randomDirP=Math.random()*2-1; f.lastDirChange=f.age;
+  }
+  const maxRot=Math.PI/8;
+  let rot=f.rot+f.randomDir*CFG.turn_speed;
+  let rotP=f.rotP+f.randomDirP*CFG.turn_speed*0.5;
+  rot=Math.max(-maxRot,Math.min(maxRot,rot));
+  rotP=Math.max(-maxRot,Math.min(maxRot,rotP));
+  f.yaw+=rot; f.pitch=Math.max(-1.1,Math.min(1.1,f.pitch+rotP));
+  f.rot*=CFG.momentum; f.rotP*=CFG.momentum;
+
+  let F=f.fwd();
+  const ds=f.vel*SPEED;
+  /* the moons bend flies by the same law they bend light:
+     d(heading) = sum_k  m_k * dv/|dv| / (|dv|^2+0.4)  * ds * 0.055 * lensing */
+  if(P.lensK>0.001 && ds>0){
+    let gx=0,gy=0,gz=0;
+    for(let k=0;k<nWellLive;k++){
+      const dx=wellsF[k*4]-f.x,dy=wellsF[k*4+1]-f.y,dz=wellsF[k*4+2]-f.z;
+      const r2=dx*dx+dy*dy+dz*dz+0.4, ir=1/Math.sqrt(r2), s=wellsF[k*4+3]*P.mGain/r2;
+      gx+=dx*ir*s;gy+=dy*ir*s;gz+=dz*ir*s;
+    }
+    const k=ds*0.055*P.lensK*FLY_LENS;
+    F=[F[0]+gx*k,F[1]+gy*k,F[2]+gz*k];
+    const n=Math.hypot(F[0],F[1],F[2])||1; F=[F[0]/n,F[1]/n,F[2]/n];
+    f.yaw=Math.atan2(F[0],F[2]); f.pitch=Math.max(-1.1,Math.min(1.1,Math.asin(Math.max(-1,Math.min(1,F[1])))));
+  }
+  let nx=f.x+F[0]*ds+rx, ny=f.y+F[1]*ds+hover+ry, nz=f.z+F[2]*ds+rz;
+  /* moons are solid: a fly that would enter one glances off it */
+  for(let k=0;k<nWellLive;k++){
+    const dx=nx-wellsF[k*4],dy=ny-wellsF[k*4+1],dz=nz-wellsF[k*4+2];
+    const d=Math.sqrt(dx*dx+dy*dy+dz*dz), rr=wellsF[k*4+3]*0.85+f.traits.size*BODY*1.5;
+    if(d<rr&&d>1e-4){
+      const n=[dx/d,dy/d,dz/d]; nx=wellsF[k*4]+n[0]*rr; ny=wellsF[k*4+1]+n[1]*rr; nz=wellsF[k*4+2]+n[2]*rr;
+      const dt=F[0]*n[0]+F[1]*n[1]+F[2]*n[2];
+      if(dt<0){F=[F[0]-2*dt*n[0],F[1]-2*dt*n[1],F[2]-2*dt*n[2]];
+        f.yaw=Math.atan2(F[0],F[2]); f.pitch=Math.asin(Math.max(-1,Math.min(1,F[1])));}
+    }
+  }
+  /* dumbflies wrapped around the screen edge; a brain has walls — they bounce */
+  if(insideVal(nx,ny,nz)>0.3){f.x=nx;f.y=ny;f.z=nz;}
+  else{
+    const n=wallGrad(f.x,f.y,f.z);
+    const dt=F[0]*n[0]+F[1]*n[1]+F[2]*n[2];
+    if(dt<0){F=[F[0]-2*dt*n[0],F[1]-2*dt*n[1],F[2]-2*dt*n[2]];
+      f.yaw=Math.atan2(F[0],F[2]); f.pitch=Math.max(-1.1,Math.min(1.1,Math.asin(Math.max(-1,Math.min(1,F[1])))));}
+    if(insideVal(f.x,f.y,f.z)<0.3){f.x+=n[0]*0.05;f.y+=n[1]*0.05;f.z+=n[2]*0.05;}
+  }
+  f.age++; if(f.cooldown>0)f.cooldown--;
+}
+
+let tickCount=0;
+function fliesTick(){
+  tickCount++;
+  /* eyes arrived from the GPU last tick: think with them */
+  for(const f of flies) f.think();
+  const dead=[], born=[];
+  const DR=CFG.bug_detection_range*SPACE;
+  for(const f of flies){
+    const near=[];
+    for(const o of flies){ if(o===f)continue;
+      const dx=f.x-o.x,dy=f.y-o.y,dz=f.z-o.z;
+      if(dx*dx+dy*dy+dz*dz<DR*DR)near.push(o); }
+    f.near=near;
+  }
+  for(const f of flies){
+    moveFly(f,f.near);
+    if(f.energy<=0){dead.push(f);deaths++;addEffect(f.x,f.y,f.z,2);}
+    if(f.isMating && flies.length+born.length<CFG.max_population){
+      for(const o of f.near){
+        if(o.isMating && !born.includes(o)){
+          const c=tryMate(f,o);
+          if(c){born.push(c);births++;deepestGen=Math.max(deepestGen,c.gen);addEffect(c.x,c.y,c.z,1);break;}
+        }
+      }
+    }
+  }
+  flies=flies.filter(f=>!dead.includes(f));
+  for(const c of born)flies.push(c);
+  if(flies.length<CFG.min_population){
+    while(flies.length<CFG.initial_population)spawnFly();
+  }
+  for(const e of effects)e.age++;
+  effects=effects.filter(e=>e.age<e.dur);
+  if(tickCount%15===0){popHist.push(flies.length);if(popHist.length>292)popHist.shift();}
+  if(!flies.find(f=>f.id===selId)) selId=flies.length?nearestFly().id:-1;
+}
+
+/* ---------------- fly eyes: GPU render target + async readback ---------------- */
+const eyeTex=gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D,eyeTex);
+gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,EYE_W,EYE_H,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+const eyeFbo=gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER,eyeFbo);
+gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,eyeTex,0);
+gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+const eyePbo=gl.createBuffer();
+gl.bindBuffer(gl.PIXEL_PACK_BUFFER,eyePbo);
+gl.bufferData(gl.PIXEL_PACK_BUFFER,EYE_W*EYE_H*4,gl.STREAM_READ);
+gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
+const eyeBuf=new Uint8Array(EYE_W*EYE_H*4);
+let eyeFence=null, eyeOwners=[], eyeReads=0, eyeSync=false;
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D,camTex);
+
+function collectEyes(){
+  if(!eyeFence)return;
+  if(gl.getSyncParameter(eyeFence,gl.SYNC_STATUS)!==gl.SIGNALED)return;
+  gl.deleteSync(eyeFence); eyeFence=null;
+  gl.bindBuffer(gl.PIXEL_PACK_BUFFER,eyePbo);
+  gl.getBufferSubData(gl.PIXEL_PACK_BUFFER,0,eyeBuf);
+  gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
+  unpackEyes();
+}
+function unpackEyes(){
+  const byId=new Map(flies.map(f=>[f.id,f]));
+  for(let t=0;t<eyeOwners.length;t++){
+    const f=byId.get(eyeOwners[t]); if(!f)continue;
+    const tx=t%EYE_COLS, ty=(t/EYE_COLS)|0;
+    for(let i=0;i<EYE;i++){                    /* row 0 of the field is the TOP of the eye */
+      const gy=ty*EYE+(EYE-1-i);
+      for(let j=0;j<EYE;j++){
+        const o=(gy*EYE_W+tx*EYE+j)*4;
+        f.eye[i*EYE+j]=0.299*eyeBuf[o]+0.587*eyeBuf[o+1]+0.114*eyeBuf[o+2];   /* cv2 BGR2GRAY weights */
+      }
+    }
+    f.hasEye=true;
+  }
+  eyeReads++;
+}
+
+/* ---------------- camera & input ---------------- */
+let camP=[0,0,0], yaw=0, pitch=0;
+function faceForwardGate(){yaw=Math.atan2(R.dirOut[0],R.dirOut[1]);pitch=0;}
+rebuildChain();faceForwardGate();
+packWorld(0);
+const keys={};
+let selId=-1, riding=false;
+addEventListener('keydown',e=>{keys[e.code]=1;
+  if(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE'].includes(e.code))e.preventDefault();
+  if(e.repeat)return;
+  if(e.code==='KeyF')pickFly();
+  if(e.code==='KeyR')toggleRide();
+  if(e.code==='KeyH')document.body.classList.toggle('clean');
+});
+addEventListener('keyup',e=>{keys[e.code]=0;});
+let dragging=false,lx=0,ly=0;
+cvs.addEventListener('pointerdown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;
+  cvs.classList.add('drag');cvs.setPointerCapture(e.pointerId);
+  boot.classList.add('gone');startMusic();});
+cvs.addEventListener('pointerup',()=>{dragging=false;cvs.classList.remove('drag');});
+cvs.addEventListener('pointermove',e=>{
+  if(!dragging||riding)return;
+  yaw+=(e.clientX-lx)*0.0032;pitch-=(e.clientY-ly)*0.0032;
+  pitch=Math.max(-1.5,Math.min(1.5,pitch));
+  lx=e.clientX;ly=e.clientY;
+});
+boot.addEventListener('click',()=>{boot.classList.add('gone');startMusic();});
+
+function tryMove(nx,ny,nz){
+  if(insideVal(nx,ny,nz)>0.35){camP=[nx,ny,nz];return;}
+  if(insideVal(nx,camP[1],camP[2])>0.35)camP[0]=nx;
+  if(insideVal(camP[0],ny,camP[2])>0.35)camP[1]=ny;
+  if(insideVal(camP[0],camP[1],nz)>0.35)camP[2]=nz;
+}
+function camFwd(){const cp=Math.cos(pitch);return [Math.sin(yaw)*cp,Math.sin(pitch),Math.cos(yaw)*cp];}
+function nearestFly(){
+  let best=null,bd=1e9;
+  for(const f of flies){const d=Math.hypot(f.x-camP[0],f.y-camP[1],f.z-camP[2]);if(d<bd){bd=d;best=f;}}
+  return best;
+}
+/* F: the fly closest to the centre of your view; if none is in view, the next one */
+function pickFly(){
+  if(!flies.length)return;
+  const F=camFwd(); let best=null,ba=0.26;
+  for(const f of flies){
+    const dx=f.x-camP[0],dy=f.y-camP[1],dz=f.z-camP[2], d=Math.hypot(dx,dy,dz)||1;
+    const a=Math.acos(Math.max(-1,Math.min(1,(dx*F[0]+dy*F[1]+dz*F[2])/d)));
+    if(a<ba){ba=a;best=f;}
+  }
+  if(best)selId=best.id; else nextFly();
+}
+function nextFly(){
+  if(!flies.length)return;
+  const i=flies.findIndex(f=>f.id===selId);
+  selId=flies[(i+1)%flies.length].id;
+}
+function toggleRide(){
+  const f=flies.find(f=>f.id===selId);
+  if(!riding&&!f)return;
+  riding=!riding;
+  if(!riding&&f){ camP=[f.x,f.y,f.z]; yaw=f.yaw; pitch=f.pitch; }
+  $('bRide').classList.toggle('on',riding);
+  $('bRide').textContent=riding?'Dismount (R)':'Ride (R)';
+  banner(riding?'RIDING '+(f?f.name:''):'ON FOOT', riding?'you see what its body sees — its eye is the small one':'');
+}
+$('bPick').onclick=pickFly; $('bNext').onclick=nextFly; $('bRide').onclick=toggleRide;
+
+/* ---------------- music: game1..10.mp3 next to this file, endless ---------- */
+const TRACKS=['game1.mp3','game2.mp3','game3.mp3','game4.mp3','game5.mp3',
+              'game6.mp3','game7.mp3','game8.mp3','game9.mp3','game10.mp3'];
+let musicOn=true, musicStarted=false, mIdx=Math.floor(Math.random()*TRACKS.length), mFails=0;
+const audio=(typeof Audio!=='undefined')?new Audio():null;
+if(audio){
+  audio.preload='auto'; audio.volume=0.5;
+  audio.addEventListener('ended',()=>{mFails=0;playTrack(mIdx+1);});
+  audio.addEventListener('error',()=>{
+    if(++mFails<TRACKS.length)playTrack(mIdx+1);
+    else $('musV').textContent='no mp3s found';
+  });
+  audio.addEventListener('playing',()=>{mFails=0;$('musV').textContent=TRACKS[mIdx];});
+}
+function playTrack(i){
+  if(!audio||!musicOn)return;
+  mIdx=((i%TRACKS.length)+TRACKS.length)%TRACKS.length;
+  audio.src=TRACKS[mIdx];
+  audio.play().catch(()=>{});
+}
+function startMusic(){
+  if(musicStarted||!musicOn||!audio)return;
+  musicStarted=true; playTrack(mIdx);
+}
+$('bMus').onclick=e=>{
+  musicOn=!musicOn;
+  e.target.classList.toggle('on',musicOn);
+  e.target.textContent='Music: '+(musicOn?'on':'off');
+  if(!audio)return;
+  if(musicOn){musicStarted=false;startMusic();}
+  else {audio.pause();$('musV').textContent='off';}
+};
+$('musV').textContent='starts on first click';
+
+/* ---------------- save / load (the descent: 6 numbers) ---------------- */
+function saveObj(){return {v:1,s:SEED,l:LEVEL,c:CI,k:keyFound?1:0,m:maxReached};}
+function saveCode(){return btoa(JSON.stringify(saveObj()));}
+function applySave(o){
+  if(!o||o.v!==1||typeof o.s!=='number')throw new Error('bad save');
+  SEED=o.s>>>0; LEVEL=Math.max(1,o.l|0); CI=o.c|0;
+  keyFound=!!o.k; maxReached=Math.max(LEVEL,o.m|0);
+  dirIn=computeDirIn(CI); camP=[0,0,0];
+  rebuildChain(); faceForwardGate(); updateLevelHud(); packWorld(simT||0); rehomeFlies();
+}
+function autoSave(){
+  try{localStorage.setItem('brainFliesSave',saveCode());}catch(e){}
+}
+$('bSave').onclick=()=>{
+  autoSave();
+  $('stat').textContent='saved · level '+LEVEL+' room #'+CI+' (Save code gives a portable copy)';
+};
+$('bCode').onclick=()=>{
+  const c=saveCode();
+  $('stat').textContent='code: '+c;
+  if(navigator.clipboard)navigator.clipboard.writeText(c).catch(()=>{});
+};
+$('bLoad').onclick=()=>{
+  let code='';
+  try{code=localStorage.getItem('brainFliesSave')||'';}catch(e){}
+  const inp=prompt('Paste a save code (leave as-is to load the local save):',code);
+  if(inp===null)return;
+  try{applySave(JSON.parse(atob(inp.trim())));
+    $('stat').textContent='loaded · level '+LEVEL+' room #'+CI+' · seed '+SEED.toString(16);
+    banner('LEVEL '+LEVEL,'re-dreamed from the hash');
+  }catch(e){$('stat').textContent='could not read that save code';}
+};
+
+/* ---------------- save / load the flies (like dumbflies: whole minds) ---------------- */
+function rnd4(a){return Array.from(a,v=>Math.round(v*1e4)/1e4);}
+$('bFSave').onclick=()=>{
+  const data={v:1,flies:flies.map(f=>({
+    x:f.x,y:f.y,z:f.z,yaw:f.yaw,pitch:f.pitch,energy:f.energy,age:f.age,
+    mating_cooldown:f.cooldown,is_mating:f.isMating,gen:f.gen,traits:f.traits,
+    perception_field:rnd4(f.perception.f),memory_field:rnd4(f.memory.f),decision_field:rnd4(f.decision.f)}))};
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='flies-'+flies.length+'.json';document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+  $('stat').textContent='saved '+flies.length+' flies (three fields each)';
+};
+$('bFLoad').onclick=()=>$('flyFile').click();
+$('flyFile').onchange=e=>{
+  const file=e.target.files[0]; if(!file)return;
+  file.text().then(txt=>{
+    const d=JSON.parse(txt), list=Array.isArray(d)?d:d.flies;
+    const loaded=[];
+    for(const b of list.slice(0,MAXF)){
+      const p=randomPointInRoom(1);
+      const f=new Fly(p[0],p[1],p[2],b.traits);
+      if('yaw' in b){f.yaw=b.yaw;f.pitch=b.pitch||0;}
+      else if('angle' in b){f.yaw=b.angle;}                 /* a dumbflies.py save works too */
+      f.energy=b.energy;f.age=b.age|0;f.cooldown=b.mating_cooldown|0;f.isMating=!!b.is_mating;f.gen=b.gen||1;
+      f.perception.f=Float32Array.from(b.perception_field.flat());
+      f.memory.f=Float32Array.from(b.memory_field.flat());
+      f.decision.f=Float32Array.from(b.decision_field.flat());
+      loaded.push(f);
+    }
+    flies=loaded; selId=flies.length?flies[0].id:-1;
+    $('stat').textContent='loaded '+flies.length+' flies into this room';
+  }).catch(()=>{$('stat').textContent='could not read that flies file';});
+  e.target.value='';
+};
+
+/* ---------------- controls ---------------- */
+const MODES=[
+  {name:'Boundary', note:'the walls are your camera; the moons are curved mirrors — flies are lensed as they pass, and seen again inside every moon.'},
+  {name:'Projection', note:'the moons carry your face; every wall is a mirror. each fly is repeated by the walls until the bounces run out.'},
+  {name:'Cascade', note:'moon to wall to moon: worlds inside worlds, flies inside them. the flies\' eyes see this hall of mirrors too.'},
+  {name:'Glass', note:'heavy optics: rays refract through each crystal (Snell + Beer-Lambert) — flies seen through the moons.'},
+];
+function setMode(mi){
+  mode=mi;
+  ['m0','m1','m2','m3'].forEach((id,i)=>$(id).classList.toggle('on',i===mi));
+  $('modeV').textContent=MODES[mi].name;
+  $('modeNote').textContent=MODES[mi].note;
+}
+setMode(0);
+function bind(id,lab,fn){const el=$(id);el.addEventListener('input',()=>{fn(parseFloat(el.value));$(lab).textContent=el.value;});}
+bind('m','m_l',v=>{P.mGain=v;});
+bind('g','g_l',v=>{P.lensK=v;});
+bind('v','v_l',v=>{if(audio)audio.volume=v;});
+bind('mp','mp_l',v=>{CFG.max_population=v|0;});
+bind('ed','ed_l',v=>{CFG.energy_decay=v;});
+bind('ms','ms_l',v=>{CFG.max_speed=v;});      /* as in dumbflies: the slider sets the default for new flies */
+$('m0').onclick=()=>setMode(0);
+$('m1').onclick=()=>setMode(1);
+$('m2').onclick=()=>setMode(2);
+$('m3').onclick=()=>setMode(3);
+$('bSrc').onclick=()=>{useCam=!useCam;setSrcLabel();};
+$('bSeed').onclick=()=>{ SEED=(Math.random()*4294967296)>>>0;
+  LEVEL=1;maxReached=1;keyFound=false;CI=0;
+  dirIn=[Math.sin(rng(0,99)*6.283),Math.cos(rng(0,99)*6.283)];
+  camP=[0,0,0]; rebuildChain(); faceForwardGate(); updateLevelHud(); packWorld(simT); rehomeFlies();
+  banner('LEVEL 1','a new brain · seed '+SEED.toString(16));
+  $('stat').textContent='new brain · seed '+SEED.toString(16); };
+$('bIdle').onclick=e=>{idle^=1;e.target.classList.toggle('on',!!idle);
+  e.target.textContent='Idle spin: '+(idle?'on':'off');};
+$('bFPause').onclick=e=>{fliesPaused=!fliesPaused;e.target.classList.toggle('on',fliesPaused);
+  e.target.textContent=fliesPaused?'Resume flies':'Pause flies';};
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+  idle=0;$('bIdle').classList.remove('on');$('bIdle').textContent='Idle spin: off';
+}
+let simT=0;
+try{const c=localStorage.getItem('brainFliesSave');
+  if(c){applySave(JSON.parse(atob(c)));
+    $('stat').textContent='resumed · level '+LEVEL+' room #'+CI;}
+}catch(e){}
+updateLevelHud();
+initFlies();
+
+/* ---------------- resize ---------------- */
+/* render scale drops by itself if the GPU can't hold ~30 fps with the flies in */
+let rScale=1, lowN=0, highN=0;
+function resize(){
+  const dpr=Math.min(devicePixelRatio||1,1.35)*rScale;
+  cvs.width=Math.floor(innerWidth*dpr);
+  cvs.height=Math.floor(innerHeight*dpr);
+}
+addEventListener('resize',resize);resize();
+function adaptScale(fps){
+  if(!boot.classList.contains('gone'))return;
+  if(fps<30){highN=0; if(++lowN>=4 && rScale>0.5){rScale=Math.max(0.5,rScale-0.1);lowN=0;resize();}}
+  else if(fps>55){lowN=0; if(++highN>=10 && rScale<1){rScale=Math.min(1,rScale+0.05);highN=0;resize();}}
+  else {lowN=0;highN=0;}
+}
+
+function updateResonance(){
+  if(keyFound){$('resT').textContent='key held';$('resFill').style.width='100%';return;}
+  const kRoom=keyRoomOf(LEVEL);
+  let res,txt;
+  if(keyPos){
+    const d=Math.hypot(camP[0]-keyPos[0],camP[1]-keyPos[1],camP[2]-keyPos[2]);
+    res=Math.max(0.35,Math.min(1,1-(d-2)/42));
+    txt='very close — '+d.toFixed(0)+' m';
+  }else{
+    const away=kRoom-CI;
+    res=Math.max(0.04,0.34/(1+Math.abs(away)));
+    txt=Math.abs(away)+' room'+(Math.abs(away)===1?'':'s')+(away>0?' ahead':' behind');
+  }
+  $('resT').textContent=txt;
+  $('resFill').style.width=(res*100).toFixed(0)+'%';
+}
+
+/* ---------------- the brain panel: eye + three fields of the chosen fly ---------------- */
+const cx2={eye:$('cEye').getContext('2d'),P:$('cP').getContext('2d'),M:$('cM').getContext('2d'),D:$('cD').getContext('2d')};
+const imgs={}; for(const k in cx2)imgs[k]=cx2[k].createImageData(32,32);
+function magma(v){            /* compact magma-like ramp */
+  const t=Math.max(0,Math.min(1,v));
+  return [Math.min(255,255*(1.6*t*t+0.15*t)), Math.min(255,255*Math.max(0,1.4*t*t*t-0.15*t)), Math.min(255,255*(0.25+0.9*t-0.95*t*t+0.75*t*t*t))];
+}
+function drawField(key,arr,th,pats){
+  const im=imgs[key], d=im.data;
+  for(let i=0;i<FN;i++){
+    const c=magma(arr[i]); d[i*4]=c[0];d[i*4+1]=c[1];d[i*4+2]=c[2];d[i*4+3]=255;
+    if(arr[i]>th){d[i*4]=Math.min(255,d[i*4]+40);d[i*4+1]=Math.min(255,d[i*4+1]+40);}
+  }
+  cx2[key].putImageData(im,0,0);
+}
+function drawEye(f){
+  const im=imgs.eye, d=im.data;
+  for(let i=0;i<FN;i++){const v=f.eye[i];d[i*4]=v;d[i*4+1]=v;d[i*4+2]=v;d[i*4+3]=255;}
+  cx2.eye.putImageData(im,0,0);
+}
+function drawSpark(){
+  const c=$('spark'),x=c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height);
+  if(popHist.length<2)return;
+  const mx=Math.max(MAXF,...popHist);
+  x.strokeStyle='#54d2e2';x.lineWidth=1;x.beginPath();
+  popHist.forEach((v,i)=>{const px=i*(c.width/(292-1)),py=c.height-2-(v/mx)*(c.height-4);i?x.lineTo(px,py):x.moveTo(px,py);});
+  x.stroke();
+  x.strokeStyle='rgba(232,177,58,.35)';x.beginPath();
+  const ym=c.height-2-(CFG.max_population/mx)*(c.height-4);x.moveTo(0,ym);x.lineTo(c.width,ym);x.stroke();
+}
+function updateFlyPanel(){
+  $('popV').textContent=flies.length+' / '+CFG.max_population;
+  $('bdV').textContent=births+' · '+deaths;
+  $('genV').textContent=deepestGen;
+  drawSpark();
+  const f=flies.find(f=>f.id===selId);
+  if(!f){$('flyName').textContent='—';return;}
+  $('flyName').textContent=f.name;
+  $('fAge').textContent=f.age+' ticks · gen '+f.gen;
+  $('fEn').textContent=f.energy.toFixed(1)+' / '+(CFG.initial_energy*1.5).toFixed(0);
+  $('fEnB').style.width=(Math.max(0,f.energy)/(CFG.initial_energy*1.5)*100).toFixed(0)+'%';
+  $('fCone').textContent=(f.traits.vision_cone_angle*180/Math.PI).toFixed(0)+'° · '+(f.traits.vision_cone_length*REACH).toFixed(1)+' m';
+  $('fTr').textContent=f.traits.max_speed.toFixed(1)+' · '+f.traits.size.toFixed(2)+' · '+f.traits.shade.toFixed(2);
+  $('fPat').textContent=f.perception.patterns.length+' · '+f.memory.patterns.length+' · '+f.decision.patterns.length;
+  $('fFlags').innerHTML=(f.isEating?'<span class="eat">eating</span>':'<span>not eating</span>')
+    +(f.isMating?'<span class="mate">mating</span>':'')
+    +(f.cooldown>0?'<span>cooldown '+f.cooldown+'</span>':'')
+    +(riding?'<span class="ride">ridden</span>':'')
+    +(f.hasEye?'':'<span>eye opening…</span>');
+  drawEye(f);
+  drawField('P',f.perception.f,0.6);
+  drawField('M',f.memory.f,0.5);
+  drawField('D',f.decision.f,0.55);
+}
+
+/* ---------------- shader compile ---------------- */
+let prog=null,U={};
+function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);
+  gl.compileShader(s);return s;}
+const UNAMES=['iRes','iTime','camP','camR','camU','camF','nWell','mode','keyWell','mGain','lensK','camTex',
+  'marchN','glassN','escN','wells','wellCol','wellPar','roomPos','roomPar','roomMod','roomShp','roomTintU','seal',
+  'nFly','eyeMode','selFly','youVis','nEv','flyP','flyD','flyC','youP','evP','evK'];
+function compileAndStart(){
+  const vs=sh(gl.VERTEX_SHADER,VERT), fs=sh(gl.FRAGMENT_SHADER,FRAG);
+  prog=gl.createProgram();
+  gl.attachShader(prog,vs);gl.attachShader(prog,fs);
+  gl.linkProgram(prog);
+  const ext=gl.getExtension('KHR_parallel_shader_compile');
+  function finish(){
+    if(window.dreamTick){clearInterval(window.dreamTick);window.dreamTick=null;}
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){
+      const log=(gl.getShaderInfoLog(fs)||'')+' '+(gl.getShaderInfoLog(vs)||'')
+               +' '+(gl.getProgramInfoLog(prog)||'');
+      bootErr('Shader failed: '+log.trim());
+      return;
+    }
+    gl.useProgram(prog);
+    UNAMES.forEach(k=>U[k]=gl.getUniformLocation(prog,k));
+    gl.uniform1i(U.camTex,0);
+    gl.uniform1i(U.glassN,26);
+    gl.uniform1i(U.escN,10);
+    window.brainReady=true;
+    $('bootStat').textContent='ready — click to enter';
+    requestAnimationFrame(loop);
+  }
+  if(ext){
+    (function poll(){
+      if(gl.getProgramParameter(prog,ext.COMPLETION_STATUS_KHR))finish();
+      else requestAnimationFrame(poll);
+    })();
+  }else finish();
+}
+
+/* ---------------- per-frame fly upload (interpolated between 30 Hz ticks) ---------------- */
+const flyPF=new Float32Array(MAXF*4), flyDF=new Float32Array(MAXF*4), flyCF=new Float32Array(MAXF*4);
+const evPF=new Float32Array(MAXE*4), evKF=new Float32Array(MAXE*4);
+let selIdx=-1;
+function packFlies(alpha,t){
+  const n=Math.min(flies.length,MAXF); selIdx=-1;
+  for(let i=0;i<n;i++){
+    const f=flies[i];
+    flyPF[i*4]=f.px+(f.x-f.px)*alpha; flyPF[i*4+1]=f.py+(f.y-f.py)*alpha; flyPF[i*4+2]=f.pz+(f.z-f.pz)*alpha;
+    flyPF[i*4+3]=f.traits.size*BODY;
+    const F=f.fwd(); flyDF[i*4]=F[0];flyDF[i*4+1]=F[1];flyDF[i*4+2]=F[2];
+    flyDF[i*4+3]=t*(f.isMating?26:20)+f.wingOff;
+    flyCF[i*4]=f.traits.shade; flyCF[i*4+1]=f.isMating?1:0;
+    flyCF[i*4+2]=f.traits.vision_cone_angle; flyCF[i*4+3]=f.traits.vision_cone_length*REACH;
+    if(f.id===selId)selIdx=i;
+  }
+  const ne=Math.min(effects.length,MAXE);
+  for(let i=0;i<ne;i++){const e=effects[i];
+    evPF[i*4]=e.x;evPF[i*4+1]=e.y;evPF[i*4+2]=e.z;evPF[i*4+3]=e.age/e.dur;
+    evKF[i*4]=e.type;}
+  return [n,ne];
+}
+function setCommon(nW,nF,nE,Fv,Rv,Uv){
+  gl.uniform1f(U.iTime,simT);
+  gl.uniform3f(U.camP,camP[0],camP[1],camP[2]);
+  gl.uniform3f(U.camR,Rv[0],Rv[1],Rv[2]);
+  gl.uniform3f(U.camU,Uv[0],Uv[1],Uv[2]);
+  gl.uniform3f(U.camF,Fv[0],Fv[1],Fv[2]);
+  gl.uniform1i(U.nWell,nW);
+  gl.uniform1i(U.mode,mode);
+  gl.uniform1i(U.keyWell,keyWell);
+  gl.uniform1f(U.mGain,P.mGain);
+  gl.uniform1f(U.lensK,P.lensK);
+  gl.uniform4fv(U.wells,wellsF);
+  gl.uniform3fv(U.wellCol,colsF);
+  gl.uniform4fv(U.wellPar,parF);
+  gl.uniform3fv(U.roomPos,roomPosF);
+  gl.uniform4fv(U.roomPar,roomParF);
+  gl.uniform4fv(U.roomMod,roomModF);
+  gl.uniform4fv(U.roomShp,roomShpF);
+  gl.uniform3fv(U.roomTintU,roomTintF);
+  gl.uniform4f(U.seal,sealV[0],sealV[1],sealV[2],sealV[3]);
+  gl.uniform1i(U.nFly,nF);
+  gl.uniform4fv(U.flyP,flyPF);
+  gl.uniform4fv(U.flyD,flyDF);
+  gl.uniform4fv(U.flyC,flyCF);
+  gl.uniform1i(U.nEv,nE);
+  gl.uniform4fv(U.evP,evPF);
+  gl.uniform4fv(U.evK,evKF);
+  gl.uniform4f(U.youP,camP[0],camP[1],camP[2],0.42);
+}
+function renderEyes(nF){
+  if(eyeFence||nF===0)return;          /* one readback in flight at a time */
+  gl.bindFramebuffer(gl.FRAMEBUFFER,eyeFbo);
+  gl.viewport(0,0,EYE_W,EYE_H);
+  gl.uniform2f(U.iRes,EYE_W,EYE_H);
+  gl.uniform1i(U.eyeMode,1);
+  gl.uniform1i(U.selFly,-1);
+  gl.uniform1i(U.youVis,1);
+  gl.uniform1i(U.marchN,120);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  eyeOwners=flies.slice(0,nF).map(f=>f.id);
+  gl.bindBuffer(gl.PIXEL_PACK_BUFFER,eyePbo);
+  gl.readPixels(0,0,EYE_W,EYE_H,gl.RGBA,gl.UNSIGNED_BYTE,0);
+  gl.bindBuffer(gl.PIXEL_PACK_BUFFER,null);
+  eyeFence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.flush();
+}
+
+/* ---------------- loop ---------------- */
+let t0=performance.now(),frames=0,fpsT=t0,tickAcc=0,ticksT=0,ticksN=0;
+function loop(now){
+  const dt=Math.min((now-t0)/1000,0.05);t0=now;
+  if(idle)simT+=dt; else simT+=dt*0.06;
+
+  const ride=riding?flies.find(f=>f.id===selId):null;
+  if(riding&&!ride){riding=false;$('bRide').classList.remove('on');$('bRide').textContent='Ride (R)';}
+
+  if(!ride){
+    const cp=Math.cos(pitch),sp=Math.sin(pitch),cy=Math.cos(yaw),sy=Math.sin(yaw);
+    const F=[sy*cp,sp,cy*cp], Rv=[cy,0,-sy];
+    const spd=(keys.ShiftLeft||keys.ShiftRight?14:6)*dt;
+    let mx=0,my=0,mz=0;
+    if(keys.KeyW){mx+=F[0]*spd;my+=F[1]*spd;mz+=F[2]*spd;}
+    if(keys.KeyS){mx-=F[0]*spd;my-=F[1]*spd;mz-=F[2]*spd;}
+    if(keys.KeyD){mx+=Rv[0]*spd;mz+=Rv[2]*spd;}
+    if(keys.KeyA){mx-=Rv[0]*spd;mz-=Rv[2]*spd;}
+    if(keys.KeyE)my+=spd;
+    if(keys.KeyQ)my-=spd;
+    if(mx||my||mz)tryMove(camP[0]+mx,camP[1]+my,camP[2]+mz);
+  }
+
+  if(roomSDJ(camP[0],camP[1],camP[2],2)<-1.0)advance();
+  else if(roomSDJ(camP[0],camP[1],camP[2],0)<-1.0)retreat();
+
+  uploadBoundary(simT);
+  const nW=packWorld(simT);
+
+  /* the minds: fixed 30 Hz, eyes collected asynchronously from the GPU */
+  collectEyes();
+  let ticked=false;
+  if(!fliesPaused){
+    tickAcc+=dt; let n=0;
+    while(tickAcc>=TICK && n<2){fliesTick();tickAcc-=TICK;n++;ticksN++;ticked=true;}
+    if(n===2)tickAcc=Math.min(tickAcc,TICK);
+  }
+  const alpha=fliesPaused?1:Math.min(tickAcc/TICK,1);
+
+  /* riding: a chase camera on the chosen fly */
+  if(ride){
+    const fx=ride.px+(ride.x-ride.px)*alpha, fy=ride.py+(ride.y-ride.py)*alpha, fz=ride.pz+(ride.z-ride.pz)*alpha;
+    const tY=ride.yaw, tP=ride.pitch*0.7;
+    let dy=tY-yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy));
+    yaw+=dy*Math.min(1,dt*5); pitch+=(tP-pitch)*Math.min(1,dt*5);
+    const cp=Math.cos(pitch);
+    const Fw=[Math.sin(yaw)*cp,Math.sin(pitch),Math.cos(yaw)*cp];
+    const back=ride.traits.size*BODY*7;
+    let cpos=[fx-Fw[0]*back,fy-Fw[1]*back+back*0.25,fz-Fw[2]*back];
+    if(insideVal(cpos[0],cpos[1],cpos[2])<0.15)cpos=[fx,fy+0.05,fz];
+    camP=cpos;
+  }
+
+  /* key pickup: touch the gold crystal (riding counts — you are on it) */
+  if(!keyFound && keyPos){
+    const d=Math.hypot(camP[0]-keyPos[0],camP[1]-keyPos[1],camP[2]-keyPos[2]);
+    if(d<keyR+1.0){
+      keyFound=true; keyWell=-1; sealV=[0,0,0,-1];
+      banner('KEY CRYSTAL','the seal dissolves — find the far gate');
+      updateLevelHud(); autoSave();
+    }
+  }
+
+  const [nF,nE]=packFlies(alpha,simT);
+  const cp=Math.cos(pitch),sp=Math.sin(pitch),cy=Math.cos(yaw),sy=Math.sin(yaw);
+  const Fv=[sy*cp,sp,cy*cp], Rv=[cy,0,-sy], Uv=[-sy*sp,cp,-cy*sp];
+
+  gl.useProgram(prog);
+  setCommon(nW,nF,nE,Fv,Rv,Uv);
+  if(ticked)renderEyes(nF);
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.viewport(0,0,cvs.width,cvs.height);
+  gl.uniform2f(U.iRes,cvs.width,cvs.height);
+  gl.uniform1i(U.eyeMode,0);
+  gl.uniform1i(U.selFly,selIdx);
+  gl.uniform1i(U.youVis,0);
+  gl.uniform1i(U.marchN,180);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+
+  frames++;
+  if(now-fpsT>400){
+    const fpsNow=frames*1000/(now-fpsT);
+    adaptScale(fpsNow);
+    $('fps').textContent=Math.round(fpsNow)+' fps'+(rScale<1?' · '+Math.round(rScale*100)+'%':'');
+    $('flyHz').textContent=Math.round(ticksN*1000/(now-fpsT))+' Hz minds';
+    frames=0;ticksN=0;fpsT=now;
+    $('pos').textContent=camP.map(v=>v.toFixed(1)).join(', ');
+    updateResonance();
+    updateFlyPanel();
+  }
+  requestAnimationFrame(loop);
+}
+
+const dreamT0=performance.now();
+window.dreamTick=setInterval(()=>{
+  const s=((performance.now()-dreamT0)/1000)|0;
+  $('bootStat').textContent='dreaming the shader… '+s+'s (first launch only — cached after)';
+},500);
+$('bootStat').textContent='dreaming the shader… (first launch only — cached after)';
+requestAnimationFrame(()=>{try{compileAndStart();}catch(e){bootErr(e&&e.stack||e);}});
+</script>
